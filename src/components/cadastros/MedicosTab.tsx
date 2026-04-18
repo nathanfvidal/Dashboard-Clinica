@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, Pencil, Plus, Trash2 } from "lucide-react";
+import { getIconeEspecialidade } from "@/lib/icones-especialidade";
 import { supabase } from "@/integrations/supabase/client";
 import { useMedicos, type Medico } from "@/hooks/useMedicos";
 import { useEspecialidades } from "@/hooks/useEspecialidades";
@@ -151,11 +152,17 @@ export function MedicosTab() {
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {especialidades?.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.icone} {e.nome}
-                      </SelectItem>
-                    ))}
+                    {especialidades?.map((e) => {
+                      const IconeEsp = getIconeEspecialidade(e.icone);
+                      return (
+                        <SelectItem key={e.id} value={e.id}>
+                          <span className="inline-flex items-center gap-2">
+                            <IconeEsp className="h-3.5 w-3.5" />
+                            {e.nome}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 {form.formState.errors.especialidade_id && (
@@ -204,7 +211,7 @@ export function MedicosTab() {
               <TableHead>CRM</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead className="w-24">Status</TableHead>
-              <TableHead className="w-72 text-right">Ações</TableHead>
+              <TableHead className="w-[340px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -222,49 +229,57 @@ export function MedicosTab() {
                 </TableCell>
               </TableRow>
             )}
-            {medicos?.map((m) => (
-              <TableRow key={m.id}>
-                <TableCell className="font-medium">{m.nome}</TableCell>
-                <TableCell>
-                  {m.especialidades ? (
-                    <span>
-                      {m.especialidades.icone} {m.especialidades.nome}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-muted-foreground">{m.crm ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{m.telefone ?? "—"}</TableCell>
-                <TableCell>
-                  <Badge variant={m.ativo ? "default" : "secondary"}>
-                    {m.ativo ? "Ativo" : "Inativo"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="space-x-1 text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setHorariosMedico(m)}
-                  >
-                    <Clock className="mr-2 h-4 w-4" /> Horários
-                  </Button>
-                  <GerarAgendaButton medicoId={m.id} medicoNome={m.nome} />
-                  <Button variant="ghost" size="icon" onClick={() => abrirEditar(m)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      if (confirm(`Remover ${m.nome}?`)) remover.mutate(m.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {medicos?.map((m) => {
+              const IconeEsp = getIconeEspecialidade(m.especialidades?.icone);
+              return (
+                <TableRow key={m.id}>
+                  <TableCell className="font-medium">{m.nome}</TableCell>
+                  <TableCell>
+                    {m.especialidades ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+                          <IconeEsp className="h-3.5 w-3.5" />
+                        </span>
+                        <span>{m.especialidades.nome}</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{m.crm ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{m.telefone ?? "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant={m.ativo ? "default" : "secondary"}>
+                      {m.ativo ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setHorariosMedico(m)}
+                      >
+                        <Clock className="mr-2 h-4 w-4" /> Horários
+                      </Button>
+                      <GerarAgendaButton medicoId={m.id} medicoNome={m.nome} />
+                      <Button variant="ghost" size="icon" onClick={() => abrirEditar(m)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (confirm(`Remover ${m.nome}?`)) remover.mutate(m.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
