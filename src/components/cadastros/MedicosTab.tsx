@@ -317,7 +317,11 @@ export function MedicosTab() {
                           align="end"
                           className="border-border/40 bg-popover/85 backdrop-blur-2xl"
                         >
-                          <GerarAgendaMenuItem medicoId={m.id} medicoNome={m.nome} />
+                          <GerarAgendaButton
+                            medicoId={m.id}
+                            medicoNome={m.nome}
+                            asMenuItem
+                          />
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

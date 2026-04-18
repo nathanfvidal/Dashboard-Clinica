@@ -19,6 +19,8 @@ import {
 interface Props {
   medicoId: string;
   medicoNome: string;
+  /** Renderiza apenas o item de menu (uso dentro de DropdownMenu). */
+  asMenuItem?: boolean;
 }
 
 function primeiroDiaProximoMes() {
@@ -31,7 +33,7 @@ function ultimoDiaProximoMes() {
   return new Date(d.getFullYear(), d.getMonth() + 2, 0).toISOString().slice(0, 10);
 }
 
-export function GerarAgendaButton({ medicoId, medicoNome }: Props) {
+export function GerarAgendaButton({ medicoId, medicoNome, asMenuItem }: Props) {
   const [open, setOpen] = useState(false);
   const [inicio, setInicio] = useState(primeiroDiaProximoMes());
   const [fim, setFim] = useState(ultimoDiaProximoMes());
@@ -62,9 +64,19 @@ export function GerarAgendaButton({ medicoId, medicoNome }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9">
-          <CalendarPlus className="mr-1.5 h-3.5 w-3.5" /> Gerar agenda
-        </Button>
+        {asMenuItem ? (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <CalendarPlus className="mr-2 h-4 w-4" /> Gerar agenda
+          </button>
+        ) : (
+          <Button variant="outline" size="sm" className="h-9">
+            <CalendarPlus className="mr-1.5 h-3.5 w-3.5" /> Gerar agenda
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
