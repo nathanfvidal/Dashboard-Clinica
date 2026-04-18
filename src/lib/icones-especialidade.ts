@@ -38,12 +38,15 @@ export const ICONES_ESPECIALIDADE: { value: string; label: string; Icon: LucideI
 
 // Compatibilidade com emojis antigos salvos no banco
 const EMOJI_TO_ICON: Record<string, string> = {
-  "🩺": "stethoscope",
-  "❤️": "heart",
-  "🌿": "leaf",
-  "🌸": "flower",
-  "🦴": "bone",
-  "👶": "baby",
+  "\u{1FA7A}": "stethoscope", // 🩺
+  "\u2764\uFE0F": "heart", // ❤️
+  "\u2764": "heart",
+  "\u{1F33F}": "leaf", // 🌿
+  "\u{1F9F4}": "leaf", // 🧴 (frasco — usar leaf como dermatologia)
+  "\u{1F338}": "flower", // 🌸
+  "\u{1F9B4}": "bone", // 🦴
+  "\u{1F476}": "baby", // 👶
+  "\u{1F9D2}": "baby", // 🧒
 };
 
 const ICONE_PADRAO: LucideIcon = Stethoscope;
