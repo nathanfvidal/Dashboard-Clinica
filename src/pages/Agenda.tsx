@@ -119,20 +119,38 @@ export default function Agenda() {
             </p>
           </div>
         </div>
-        <Dialog open={openNovo} onOpenChange={setOpenNovo}>
-          <DialogTrigger asChild>
-            <Button className="h-10">
-              <Plus className="h-4 w-4" />
-              Novo agendamento
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-xl border-border/40 bg-popover/80 backdrop-blur-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl tracking-tight">Novo agendamento</DialogTitle>
-            </DialogHeader>
-            <AgendamentoForm onDone={() => setOpenNovo(false)} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Tabs value={visao} onValueChange={(v) => setVisao(v as typeof visao)}>
+            <TabsList className="h-10 border border-border/40 bg-background/40 backdrop-blur-xl">
+              <TabsTrigger value="tabela" className="gap-1.5 px-3 text-xs">
+                <List className="h-3.5 w-3.5" />
+                Tabela
+              </TabsTrigger>
+              <TabsTrigger value="semana" className="gap-1.5 px-3 text-xs">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Semana
+              </TabsTrigger>
+              <TabsTrigger value="mes" className="gap-1.5 px-3 text-xs">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Mês
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Dialog open={openNovo} onOpenChange={setOpenNovo}>
+            <DialogTrigger asChild>
+              <Button className="h-10">
+                <Plus className="h-4 w-4" />
+                Novo agendamento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-xl border-border/40 bg-popover/80 backdrop-blur-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-xl tracking-tight">Novo agendamento</DialogTitle>
+              </DialogHeader>
+              <AgendamentoForm onDone={() => setOpenNovo(false)} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <GlassCard>
