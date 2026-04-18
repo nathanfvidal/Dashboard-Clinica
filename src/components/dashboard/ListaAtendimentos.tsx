@@ -125,8 +125,8 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
                       variant="outline"
                       className={
                         botPausado
-                          ? "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                          : "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                          ? "border-[hsl(var(--accent-amber)/0.3)] bg-[hsl(var(--accent-amber)/0.15)] text-[hsl(var(--accent-amber))]"
+                          : "border-[hsl(var(--accent-emerald)/0.3)] bg-[hsl(var(--accent-emerald)/0.15)] text-[hsl(var(--accent-emerald))]"
                       }
                     >
                       {botPausado ? "pausado" : "ativo"}
