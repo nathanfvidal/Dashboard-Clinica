@@ -138,21 +138,21 @@ const Index = () => {
       </div>
 
       <motion.div
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-4"
         variants={staggerContainer}
         initial="hidden"
         animate="show"
       >
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="h-full">
           <KpiCard label="Agendamentos hoje" value={agendHoje} icon={CalendarCheck} accent="primary" />
         </motion.div>
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="h-full">
           <KpiCard label="Pacientes cadastrados" value={pacientes.length} icon={Users} accent="cyan" />
         </motion.div>
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="h-full">
           <KpiCard label="Fila humana" value={filaHumana} icon={MessageSquare} accent="amber" />
         </motion.div>
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="h-full">
           <KpiCard
             label="Feedback médio"
             value={mediaFeedback}

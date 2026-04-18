@@ -61,13 +61,13 @@ export function KpiCard({ label, value, icon: Icon, hint, accent }: KpiCardProps
   const tone = accentMap[normalizeAccent(accent)];
 
   return (
-    <GlassCard hover className="group relative overflow-hidden">
-      {/* Glow sutil no topo do card */}
+    <GlassCard hover className="group relative h-full overflow-hidden">
+      {/* Brilho sutil no topo do card ao passar o mouse */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <div className="flex items-center gap-4 p-5">
+      <div className="flex h-full items-center gap-4 p-5">
         <div
           className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-xl ring-1 transition-all duration-300",
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ring-1 transition-all duration-300",
             tone.bg,
             tone.text,
             tone.ring,
@@ -76,10 +76,11 @@ export function KpiCard({ label, value, icon: Icon, hint, accent }: KpiCardProps
         >
           <Icon className="h-6 w-6" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
           <p className="text-3xl font-semibold leading-tight tracking-tight">{value}</p>
-          {hint && <p className="text-xs text-muted-foreground/80">{hint}</p>}
+          {/* Slot do hint sempre reservado para manter altura uniforme entre KPIs */}
+          <p className="min-h-[1rem] text-xs text-muted-foreground/80">{hint ?? "\u00A0"}</p>
         </div>
       </div>
     </GlassCard>
