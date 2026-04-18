@@ -62,8 +62,8 @@ export function GerarAgendaButton({ medicoId, medicoNome }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <CalendarPlus className="mr-2 h-4 w-4" /> Gerar agenda
+        <Button variant="outline" size="sm" className="h-9">
+          <CalendarPlus className="mr-1.5 h-3.5 w-3.5" /> Gerar agenda
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -76,29 +76,35 @@ export function GerarAgendaButton({ medicoId, medicoNome }: Props) {
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="ger-inicio">Data início</Label>
+            <Label htmlFor="ger-inicio" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Data início
+            </Label>
             <Input
               id="ger-inicio"
               type="date"
+              className="h-10 border-border/50 bg-background/40"
               value={inicio}
               onChange={(e) => setInicio(e.target.value)}
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="ger-fim">Data fim</Label>
+            <Label htmlFor="ger-fim" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Data fim
+            </Label>
             <Input
               id="ger-fim"
               type="date"
+              className="h-10 border-border/50 bg-background/40"
               value={fim}
               onChange={(e) => setFim(e.target.value)}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>
+          <Button variant="ghost" className="h-10" onClick={() => setOpen(false)}>
             Cancelar
           </Button>
-          <Button onClick={() => gerar.mutate()} disabled={gerar.isPending}>
+          <Button onClick={() => gerar.mutate()} className="h-10 px-6" disabled={gerar.isPending}>
             {gerar.isPending ? "Gerando..." : "Gerar slots"}
           </Button>
         </DialogFooter>
