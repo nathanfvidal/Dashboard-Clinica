@@ -121,7 +121,7 @@ export function MedicosTab() {
         </p>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button onClick={abrirNovo} size="sm">
+            <Button onClick={abrirNovo} className="h-9">
               <Plus className="mr-2 h-4 w-4" /> Novo médico
             </Button>
           </DialogTrigger>
@@ -134,8 +134,10 @@ export function MedicosTab() {
               className="grid gap-4"
             >
               <div className="grid gap-1.5">
-                <Label htmlFor="med-nome">Nome</Label>
-                <Input id="med-nome" {...form.register("nome")} />
+                <Label htmlFor="med-nome" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Nome
+                </Label>
+                <Input id="med-nome" className="h-10 border-border/50 bg-background/40" {...form.register("nome")} />
                 {form.formState.errors.nome && (
                   <p className="text-xs text-destructive">
                     {form.formState.errors.nome.message}
@@ -143,12 +145,14 @@ export function MedicosTab() {
                 )}
               </div>
               <div className="grid gap-1.5">
-                <Label>Especialidade</Label>
+                <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Especialidade
+                </Label>
                 <Select
                   value={form.watch("especialidade_id")}
                   onValueChange={(v) => form.setValue("especialidade_id", v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-10 border-border/50 bg-background/40">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -173,16 +177,20 @@ export function MedicosTab() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
-                  <Label htmlFor="med-crm">CRM</Label>
-                  <Input id="med-crm" {...form.register("crm")} />
+                  <Label htmlFor="med-crm" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    CRM
+                  </Label>
+                  <Input id="med-crm" className="h-10 border-border/50 bg-background/40" {...form.register("crm")} />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="med-tel">Telefone</Label>
-                  <Input id="med-tel" {...form.register("telefone")} />
+                  <Label htmlFor="med-tel" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Telefone
+                  </Label>
+                  <Input id="med-tel" className="h-10 border-border/50 bg-background/40" {...form.register("telefone")} />
                 </div>
               </div>
-              <div className="flex items-center justify-between rounded-md border border-border p-3">
-                <Label htmlFor="med-ativo">Ativo</Label>
+              <div className="flex items-center justify-between rounded-xl border border-border/50 bg-background/40 px-4 py-3">
+                <Label htmlFor="med-ativo" className="cursor-pointer">Ativo</Label>
                 <Switch
                   id="med-ativo"
                   checked={form.watch("ativo")}
@@ -190,10 +198,10 @@ export function MedicosTab() {
                 />
               </div>
               <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                <Button type="button" variant="ghost" className="h-10" onClick={() => setOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={salvar.isPending}>
+                <Button type="submit" className="h-10 px-6" disabled={salvar.isPending}>
                   {salvar.isPending ? "Salvando..." : "Salvar"}
                 </Button>
               </DialogFooter>
@@ -202,7 +210,7 @@ export function MedicosTab() {
         </Dialog>
       </div>
 
-      <div className="rounded-md border border-border">
+      <div className="glass-card overflow-hidden p-0">
         <Table>
           <TableHeader>
             <TableRow>
