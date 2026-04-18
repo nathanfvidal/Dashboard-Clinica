@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, CalendarDays, Headphones, LayoutDashboard, Settings2 } from "lucide-react";
+import { Activity, CalendarDays, ClipboardList, Headphones, LayoutDashboard, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAlertaBotPausado } from "@/hooks/useAlertaBotPausado";
 
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, end: false },
   { to: "/atendimentos", label: "Atendimentos", icon: Headphones, end: false },
+  { to: "/solicitacoes", label: "Solicitações", icon: ClipboardList, end: false },
   { to: "/cadastros", label: "Cadastros", icon: Settings2, end: false },
 ];
 
