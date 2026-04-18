@@ -110,24 +110,22 @@ export function PreviewSemana({ linhas }: Props) {
   );
 
   return (
-    <div className="rounded-lg border border-border/60 bg-gradient-surface p-3">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="glass-card p-4">
+      <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            Prévia da semana
-          </p>
+          <p className="text-sm font-semibold tracking-tight">Prévia da semana</p>
           <p className="text-xs text-muted-foreground/70">
             Slots gerados a cada intervalo configurado
           </p>
         </div>
         <div className="flex items-center gap-2">
           {totalConflitos > 0 && (
-            <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/30">
+            <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-1 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/30">
               <AlertTriangle className="h-3 w-3" />
               {totalConflitos} {totalConflitos === 1 ? "conflito" : "conflitos"}
             </span>
           )}
-          <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">
+          <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/25">
             {totalSlots} {totalSlots === 1 ? "slot" : "slots"} / semana
           </span>
         </div>
@@ -143,20 +141,20 @@ export function PreviewSemana({ linhas }: Props) {
             <div
               key={i}
               className={
-                "flex flex-col rounded-md border p-2 transition-colors " +
+                "flex flex-col rounded-lg border p-2.5 transition-all " +
                 (vazio
-                  ? "border-dashed border-border/50 bg-muted/30"
+                  ? "border-dashed border-border/40 bg-background/20"
                   : temConflito
                     ? "border-destructive/40 bg-destructive/5"
-                    : "border-border/70 bg-card/50")
+                    : "border-border/40 bg-background/30")
               }
             >
               <div className="mb-2 flex items-center justify-between">
                 <span
                   className={
-                    "text-[10px] font-semibold tracking-wider " +
+                    "text-[10px] font-bold tracking-wider " +
                     (vazio
-                      ? "text-muted-foreground/60"
+                      ? "text-muted-foreground/50"
                       : temConflito
                         ? "text-destructive"
                         : "text-primary")
@@ -172,16 +170,16 @@ export function PreviewSemana({ linhas }: Props) {
                         aria-label="Conflitos detectados"
                       />
                     )}
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px] tabular-nums text-muted-foreground">
                       {slots.length}
                     </span>
                   </span>
                 )}
               </div>
               {vazio ? (
-                <span className="text-center text-[10px] text-muted-foreground/50">—</span>
+                <span className="py-2 text-center text-[10px] text-muted-foreground/40">—</span>
               ) : (
-                <div className="flex max-h-40 flex-col gap-1 overflow-auto pr-0.5">
+                <div className="flex max-h-48 flex-col gap-1 overflow-auto pr-0.5">
                   {slots.map((s) => {
                     const conflito = conflitos.has(s);
                     return (
@@ -189,7 +187,7 @@ export function PreviewSemana({ linhas }: Props) {
                         key={s}
                         title={conflito ? "Sobreposição com outra linha" : undefined}
                         className={
-                          "rounded px-1.5 py-0.5 text-center text-[10px] font-medium tabular-nums ring-1 ring-inset " +
+                          "rounded-md px-1.5 py-1 text-center text-[10px] font-medium tabular-nums ring-1 ring-inset " +
                           (conflito
                             ? "bg-destructive/15 text-destructive ring-destructive/40"
                             : "bg-primary/10 text-primary ring-primary/15")
@@ -207,7 +205,7 @@ export function PreviewSemana({ linhas }: Props) {
       </div>
 
       {totalConflitos > 0 && (
-        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-destructive">
+        <p className="mt-3 flex items-center gap-1.5 text-[11px] text-destructive">
           <AlertTriangle className="h-3 w-3" />
           Há horários sobrepostos no mesmo dia. Ajuste as linhas em conflito antes de
           salvar.

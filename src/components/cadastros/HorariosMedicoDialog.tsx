@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, CalendarClock, Sparkles } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { PreviewSemana } from "./PreviewSemana";
 import { LinhaHorarioSortable } from "./LinhaHorarioSortable";
 
@@ -47,16 +48,6 @@ interface Horario {
   ativo: boolean;
 }
 
-const DIAS = [
-  "Domingo",
-  "Segunda-feira",
-  "Terça-feira",
-  "Quarta-feira",
-  "Quinta-feira",
-  "Sexta-feira",
-  "Sábado",
-];
-
 const TEMPLATE_PADRAO = [
   { dia_semana: 1, hora_inicio: "08:00", hora_fim: "18:00", duracao_consulta_min: 30 },
   { dia_semana: 2, hora_inicio: "08:00", hora_fim: "18:00", duracao_consulta_min: 30 },
@@ -65,6 +56,42 @@ const TEMPLATE_PADRAO = [
   { dia_semana: 5, hora_inicio: "08:00", hora_fim: "18:00", duracao_consulta_min: 30 },
   { dia_semana: 6, hora_inicio: "08:00", hora_fim: "12:00", duracao_consulta_min: 30 },
 ];
+
+// Detecta linhas em conflito (mesmo dia, intervalos sobrepostos)
+function detectarLinhasConflitantes(
+  linhas: Array<{ _key: string; dia_semana?: number; hora_inicio?: string; hora_fim?: string }>,
+): Set<string> {
+  const conflitantes = new Set<string>();
+  const toMin = (s?: string) => {
+    if (!s) return 0;
+    const [h, m] = s.split(":").map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const porDia = new Map<number, typeof linhas>();
+  for (const l of linhas) {
+    const d = Number(l.dia_semana ?? -1);
+    if (d < 0) continue;
+    if (!porDia.has(d)) porDia.set(d, []);
+    porDia.get(d)!.push(l);
+  }
+  for (const grupo of porDia.values()) {
+    for (let i = 0; i < grupo.length; i++) {
+      for (let j = i + 1; j < grupo.length; j++) {
+        const a = grupo[i];
+        const b = grupo[j];
+        const aIni = toMin(a.hora_inicio);
+        const aFim = toMin(a.hora_fim);
+        const bIni = toMin(b.hora_inicio);
+        const bFim = toMin(b.hora_fim);
+        if (Math.max(aIni, bIni) < Math.min(aFim, bFim)) {
+          conflitantes.add(a._key);
+          conflitantes.add(b._key);
+        }
+      }
+    }
+  }
+  return conflitantes;
+}
 
 export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
@@ -99,6 +126,8 @@ export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
       );
     }
   }, [horarios]);
+
+  const conflitantes = useMemo(() => detectarLinhasConflitantes(linhas), [linhas]);
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -160,7 +189,7 @@ export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
   const atualizar = (key: string, campo: keyof Horario, valor: string | number) =>
     setLinhas((l) => l.map((x) => (x._key === key ? { ...x, [campo]: valor } : x)));
 
-  // Sensores do dnd-kit: pointer com pequena distância para não atrapalhar cliques
+  // Sensores do dnd-kit
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -177,63 +206,118 @@ export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
     });
   };
 
+  // Inicial do médico para o avatar do header
+  const inicial = medico?.nome?.trim().charAt(0).toUpperCase() ?? "?";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-h-[92vh] max-w-6xl overflow-y-auto border-border/40 bg-popover/80 backdrop-blur-2xl">
         <DialogHeader>
-          <DialogTitle>Horários — {medico?.nome}</DialogTitle>
-          <DialogDescription>
-            Defina os dias e horários de atendimento. Esses horários alimentam o gerador de
-            agenda e a tool de busca da Sofia.
-          </DialogDescription>
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-primary text-lg font-bold text-primary-foreground shadow-glow ring-1 ring-inset ring-white/10">
+              {inicial}
+            </div>
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-2xl font-semibold tracking-tight">
+                {medico?.nome}
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                Defina os dias e horários de atendimento. Esses horários alimentam o
+                gerador de agenda e a tool de busca da Sofia.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="flex justify-between gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={aplicarTemplate}>
-            Aplicar template padrão (seg-sex 08-18, sáb 08-12)
+        {/* Toolbar: ações principais com mesma altura */}
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/40 bg-background/30 p-2 backdrop-blur-md">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9"
+            onClick={aplicarTemplate}
+          >
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            Template padrão (seg-sex 08-18, sáb 08-12)
           </Button>
-          <Button type="button" size="sm" onClick={adicionar}>
-            <Plus className="mr-2 h-4 w-4" /> Adicionar linha
+          <Separator orientation="vertical" className="h-6" />
+          <Button type="button" size="sm" className="h-9" onClick={adicionar}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" /> Adicionar linha
           </Button>
+          <div className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+            <CalendarClock className="h-3.5 w-3.5" />
+            {linhas.length} {linhas.length === 1 ? "linha" : "linhas"}
+            {conflitantes.size > 0 && (
+              <span className="ml-2 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-medium text-destructive ring-1 ring-inset ring-destructive/30">
+                {conflitantes.size} em conflito
+              </span>
+            )}
+          </div>
         </div>
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext
-            items={linhas.map((l) => l._key)}
-            strategy={verticalListSortingStrategy}
+        {/* Grid 2 colunas em telas grandes: editor à esquerda, preview à direita */}
+        <div className="grid gap-4 xl:grid-cols-[1fr_minmax(0,520px)]">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
           >
-            <div className="max-h-[50vh] space-y-2 overflow-auto pr-1">
-              {linhas.length === 0 && (
-                <p className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                  Nenhum horário definido. Adicione manualmente ou aplique o template.
-                </p>
-              )}
-              {linhas.map((l) => (
-                <LinhaHorarioSortable
-                  key={l._key}
-                  id={l._key}
-                  dia_semana={l.dia_semana}
-                  hora_inicio={l.hora_inicio}
-                  hora_fim={l.hora_fim}
-                  duracao_consulta_min={l.duracao_consulta_min}
-                  onChange={(campo, valor) =>
-                    atualizar(l._key, campo as keyof Horario, valor)
-                  }
-                  onRemove={() => remover(l._key)}
-                  onDuplicate={() => duplicar(l._key)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+            <SortableContext
+              items={linhas.map((l) => l._key)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="max-h-[60vh] space-y-2 overflow-auto pr-1">
+                {linhas.length === 0 && (
+                  <div className="glass-subtle flex flex-col items-center justify-center gap-2 p-10 text-center">
+                    <CalendarClock className="h-8 w-8 text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum horário definido
+                    </p>
+                    <p className="text-xs text-muted-foreground/70">
+                      Adicione manualmente ou aplique o template padrão.
+                    </p>
+                  </div>
+                )}
+                {linhas.map((l) => (
+                  <LinhaHorarioSortable
+                    key={l._key}
+                    id={l._key}
+                    dia_semana={l.dia_semana}
+                    hora_inicio={l.hora_inicio}
+                    hora_fim={l.hora_fim}
+                    duracao_consulta_min={l.duracao_consulta_min}
+                    conflito={conflitantes.has(l._key)}
+                    onChange={(campo, valor) =>
+                      atualizar(l._key, campo as keyof Horario, valor)
+                    }
+                    onRemove={() => remover(l._key)}
+                    onDuplicate={() => duplicar(l._key)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
 
-        <PreviewSemana linhas={linhas} />
+          <div className="xl:sticky xl:top-0 xl:self-start">
+            <PreviewSemana linhas={linhas} />
+          </div>
+        </div>
 
-        <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-10"
+            onClick={() => onOpenChange(false)}
+          >
             Cancelar
           </Button>
-          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+          <Button
+            className="h-10 px-6"
+            onClick={() => salvar.mutate()}
+            disabled={salvar.isPending || conflitantes.size > 0}
+          >
             {salvar.isPending ? "Salvando..." : "Salvar horários"}
           </Button>
         </DialogFooter>
