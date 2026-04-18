@@ -1,7 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Star } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from "@/components/ui/glass-card";
 
 interface Feedback {
   id: string;
@@ -12,6 +17,18 @@ interface Feedback {
   created_at: string;
 }
 
+// Cor do avatar derivada da nota — verde alto, âmbar médio, rosa baixo
+function corPorNota(nota: number) {
+  if (nota >= 4) return "bg-[hsl(var(--accent-emerald)/0.18)] text-[hsl(var(--accent-emerald))] ring-[hsl(var(--accent-emerald)/0.3)]";
+  if (nota >= 3) return "bg-[hsl(var(--accent-amber)/0.18)] text-[hsl(var(--accent-amber))] ring-[hsl(var(--accent-amber)/0.3)]";
+  return "bg-[hsl(var(--accent-rose)/0.18)] text-[hsl(var(--accent-rose))] ring-[hsl(var(--accent-rose)/0.3)]";
+}
+
+function inicial(nome: string | null, telefone: string) {
+  const fonte = (nome ?? telefone).trim();
+  return fonte.charAt(0).toUpperCase() || "?";
+}
+
 function Estrelas({ nota }: { nota: number }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -20,7 +37,9 @@ function Estrelas({ nota }: { nota: number }) {
           key={n}
           className={cn(
             "h-4 w-4",
-            n <= nota ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30",
+            n <= nota
+              ? "fill-[hsl(var(--accent-amber))] text-[hsl(var(--accent-amber))]"
+              : "text-muted-foreground/25",
           )}
         />
       ))}
@@ -30,36 +49,58 @@ function Estrelas({ nota }: { nota: number }) {
 
 export function ListaFeedbacks({ feedbacks }: { feedbacks: Feedback[] }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Últimos feedbacks</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <GlassCard>
+      <GlassCardHeader>
+        <GlassCardTitle>Últimos feedbacks</GlassCardTitle>
+      </GlassCardHeader>
+      <GlassCardContent>
         {feedbacks.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
+          <p className="py-8 text-center text-sm text-muted-foreground">
             Nenhum feedback registrado ainda
           </p>
         ) : (
-          <ul className="divide-y divide-border">
+          <div className="space-y-2">
             {feedbacks.map((f) => (
-              <li key={f.id} className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between">
+              <div
+                key={f.id}
+                className="glass-subtle glass-hover flex items-start gap-3 p-4"
+              >
+                {/* Avatar circular com inicial */}
+                <div
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-1",
+                    corPorNota(f.nota),
+                  )}
+                >
+                  {inicial(f.paciente_nome, f.paciente_telefone)}
+                </div>
+
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{f.paciente_nome ?? f.paciente_telefone}</p>
-                    <Estrelas nota={f.nota} />
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold tracking-tight">
+                        {f.paciente_nome ?? f.paciente_telefone}
+                      </p>
+                      <div className="mt-1">
+                        <Estrelas nota={f.nota} />
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {format(new Date(f.created_at), "dd/MM HH:mm")}
+                    </span>
                   </div>
+
                   {f.comentario && (
-                    <p className="mt-1 text-sm text-muted-foreground">{f.comentario}</p>
+                    <p className="mt-2 text-sm italic text-muted-foreground">
+                      &ldquo;{f.comentario}&rdquo;
+                    </p>
                   )}
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {format(new Date(f.created_at), "dd/MM HH:mm")}
-                </span>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   );
 }

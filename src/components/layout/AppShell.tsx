@@ -17,7 +17,7 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen text-foreground">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-border/40 bg-background/40 backdrop-blur-2xl backdrop-saturate-150">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">

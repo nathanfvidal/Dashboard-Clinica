@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from "@/components/ui/glass-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -98,10 +103,10 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
   );
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+    <GlassCard>
+      <GlassCardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
         <div className="flex items-center gap-2">
-          <CardTitle className="text-base">Atendimentos humanos</CardTitle>
+          <GlassCardTitle>Atendimentos humanos</GlassCardTitle>
           {totalPausados > 0 && (
             <Badge variant="outline" className="border-[hsl(var(--accent-amber)/0.3)] bg-[hsl(var(--accent-amber)/0.15)] text-[hsl(var(--accent-amber))]">
               {totalPausados} bot{totalPausados !== 1 ? "s" : ""} pausado{totalPausados !== 1 ? "s" : ""}
@@ -119,8 +124,8 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
             disabled={atendimentos.length === 0}
           />
         </div>
-      </CardHeader>
-      <CardContent className="p-0">
+      </GlassCardHeader>
+      <GlassCardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
@@ -214,7 +219,7 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
             })}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   );
 }

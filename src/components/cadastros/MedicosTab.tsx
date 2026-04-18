@@ -254,26 +254,35 @@ export function MedicosTab() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1.5">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="h-9"
                         onClick={() => setHorariosMedico(m)}
                       >
-                        <Clock className="mr-2 h-4 w-4" /> Horários
+                        <Clock className="mr-1.5 h-3.5 w-3.5" /> Horários
                       </Button>
                       <GerarAgendaButton medicoId={m.id} medicoNome={m.nome} />
-                      <Button variant="ghost" size="icon" onClick={() => abrirEditar(m)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => abrirEditar(m)}
+                        aria-label="Editar médico"
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => {
                           if (confirm(`Remover ${m.nome}?`)) remover.mutate(m.id);
                         }}
+                        aria-label="Remover médico"
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
