@@ -304,6 +304,43 @@ export default function Agenda() {
           </Table>
         </GlassCardContent>
       </GlassCard>
+      )}
+
+      {visao === "semana" && (
+        <GlassCard>
+          <GlassCardContent className="p-4">
+            <CalendarioSemana
+              semanaRef={refData}
+              agendamentos={filtrados}
+              onMudarSemana={setRefData}
+              onSelecionarAgendamento={(id) => {
+                const ag = agendamentos.find((a) => a.id === id);
+                if (ag) setEditando(ag);
+              }}
+            />
+          </GlassCardContent>
+        </GlassCard>
+      )}
+
+      {visao === "mes" && (
+        <GlassCard>
+          <GlassCardContent className="p-4">
+            <CalendarioMes
+              mesRef={refData}
+              agendamentos={filtrados}
+              onMudarMes={setRefData}
+              onSelecionarDia={(d) => {
+                setFiltroData(d);
+                setVisao("tabela");
+              }}
+              onSelecionarAgendamento={(id) => {
+                const ag = agendamentos.find((a) => a.id === id);
+                if (ag) setEditando(ag);
+              }}
+            />
+          </GlassCardContent>
+        </GlassCard>
+      )}
 
       <Dialog open={Boolean(editando)} onOpenChange={(o) => !o && setEditando(null)}>
         <DialogContent className="max-w-xl border-border/40 bg-popover/80 backdrop-blur-2xl">
