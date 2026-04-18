@@ -250,7 +250,7 @@ export function EspecialidadesTab() {
             })}
           </TableBody>
         </Table>
-      </div>
+      </GlassCard>
 
       <ConfirmDialog
         open={!!removingId}

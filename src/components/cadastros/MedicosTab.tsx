@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { GlassCard } from "@/components/ui/glass-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -219,7 +220,7 @@ export function MedicosTab() {
         </Dialog>
       </div>
 
-      <div className="glass-card overflow-hidden p-0">
+      <GlassCard spotlight className="overflow-hidden p-0">
         <Table>
           <TableHeader>
             <TableRow>
