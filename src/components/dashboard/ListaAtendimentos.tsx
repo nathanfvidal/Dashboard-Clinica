@@ -1,13 +1,13 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { statusBadgeClass } from "@/lib/status";
 import { format } from "date-fns";
-import { CheckCircle2 } from "lucide-react";
+import { Bot, BotOff, CheckCircle2 } from "lucide-react";
 
 interface Atendimento {
   id: string;
@@ -18,8 +18,28 @@ interface Atendimento {
   created_at: string | null;
 }
 
+// Estados que indicam bot pausado (atendimento humano em andamento)
+const STATUS_HUMANO = new Set(["humano", "atendente", "pausado"]);
+
 export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[] }) {
   const queryClient = useQueryClient();
+
+  // Busca o status_sessao dos pacientes desta lista para sabermos se o bot está ativo
+  const telefones = atendimentos.map((a) => a.paciente_telefone);
+  const { data: pacientesSessao = [] } = useQuery({
+    queryKey: ["pacientes-sessao", telefones.sort().join(",")],
+    enabled: telefones.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pacientes")
+        .select("telefone, status_sessao")
+        .in("telefone", telefones);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const sessaoPorTelefone = new Map(pacientesSessao.map((p) => [p.telefone, p.status_sessao]));
 
   const finalizar = useMutation({
     mutationFn: async (id: string) => {
@@ -32,6 +52,26 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
     onSuccess: () => {
       toast({ title: "Atendimento finalizado" });
       queryClient.invalidateQueries({ queryKey: ["atendimentos"] });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  // Pausa (humano) ou reativa (ia) o bot para o paciente
+  const alternarBot = useMutation({
+    mutationFn: async ({ telefone, novoStatus }: { telefone: string; novoStatus: "ia" | "humano" }) => {
+      const { error } = await supabase
+        .from("pacientes")
+        .update({ status_sessao: novoStatus, ultima_interacao: new Date().toISOString() })
+        .eq("telefone", telefone);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      toast({
+        title: vars.novoStatus === "ia" ? "Bot reativado" : "Bot pausado",
+        description: `Paciente ${vars.telefone}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["pacientes-sessao"] });
+      queryClient.invalidateQueries({ queryKey: ["pacientes"] });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
@@ -50,45 +90,87 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
               <TableHead>Motivo</TableHead>
               <TableHead>Início</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Bot</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {atendimentos.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
                   Nenhum atendimento humano no momento
                 </TableCell>
               </TableRow>
             )}
-            {atendimentos.map((a) => (
-              <TableRow key={a.id}>
-                <TableCell className="font-medium">{a.paciente_nome ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{a.paciente_telefone}</TableCell>
-                <TableCell className="max-w-[260px] truncate">{a.motivo ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {a.created_at ? format(new Date(a.created_at), "dd/MM HH:mm") : "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={statusBadgeClass(a.status)}>
-                    {a.status ?? "—"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  {a.status !== "finalizado" && (
-                    <Button
-                      size="sm"
+            {atendimentos.map((a) => {
+              const sessao = sessaoPorTelefone.get(a.paciente_telefone);
+              const botPausado = STATUS_HUMANO.has((sessao ?? "").toLowerCase());
+              const novoStatus = botPausado ? "ia" : "humano";
+
+              return (
+                <TableRow key={a.id}>
+                  <TableCell className="font-medium">{a.paciente_nome ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{a.paciente_telefone}</TableCell>
+                  <TableCell className="max-w-[260px] truncate">{a.motivo ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {a.created_at ? format(new Date(a.created_at), "dd/MM HH:mm") : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={statusBadgeClass(a.status)}>
+                      {a.status ?? "—"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
                       variant="outline"
-                      onClick={() => finalizar.mutate(a.id)}
-                      disabled={finalizar.isPending}
+                      className={
+                        botPausado
+                          ? "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                          : "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                      }
                     >
-                      <CheckCircle2 className="mr-1 h-4 w-4" />
-                      Finalizar
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+                      {botPausado ? "pausado" : "ativo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          alternarBot.mutate({ telefone: a.paciente_telefone, novoStatus })
+                        }
+                        disabled={alternarBot.isPending}
+                        title={botPausado ? "Reativar bot" : "Pausar bot"}
+                      >
+                        {botPausado ? (
+                          <>
+                            <Bot className="mr-1 h-4 w-4" />
+                            Reativar bot
+                          </>
+                        ) : (
+                          <>
+                            <BotOff className="mr-1 h-4 w-4" />
+                            Pausar bot
+                          </>
+                        )}
+                      </Button>
+                      {a.status !== "finalizado" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => finalizar.mutate(a.id)}
+                          disabled={finalizar.isPending}
+                        >
+                          <CheckCircle2 className="mr-1 h-4 w-4" />
+                          Finalizar
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>
