@@ -152,11 +152,17 @@ export function MedicosTab() {
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {especialidades?.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.icone} {e.nome}
-                      </SelectItem>
-                    ))}
+                    {especialidades?.map((e) => {
+                      const IconeEsp = getIconeEspecialidade(e.icone);
+                      return (
+                        <SelectItem key={e.id} value={e.id}>
+                          <span className="inline-flex items-center gap-2">
+                            <IconeEsp className="h-3.5 w-3.5" />
+                            {e.nome}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 {form.formState.errors.especialidade_id && (
