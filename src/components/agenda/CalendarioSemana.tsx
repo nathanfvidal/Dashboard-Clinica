@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, eachDayOfInterval, endOfWeek, format, isSameDay, isToday, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
@@ -53,6 +53,9 @@ export function CalendarioSemana({
   // ID sendo arrastado e indicador visual da zona alvo
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [alvo, setAlvo] = useState<{ data: string; slot: number } | null>(null);
+
+  // Container scrollável da grade — usado para rolar até a hora atual
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Relógio atualizado a cada minuto para a linha "agora"
   const [agora, setAgora] = useState<Date>(() => new Date());
@@ -170,7 +173,7 @@ export function CalendarioSemana({
         </p>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-border/40">
+      <div ref={scrollRef} className="max-h-[640px] overflow-y-auto overflow-x-hidden rounded-xl border border-border/40">
         {/* Cabeçalho de dias */}
         <div className="grid grid-cols-[60px_repeat(7,minmax(0,1fr))] border-b border-border/40 bg-background/60">
           <div />
