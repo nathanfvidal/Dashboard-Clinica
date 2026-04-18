@@ -1,74 +1,103 @@
 
-## Objetivo
-Auditar o workflow `Atendimento - Clinica Medica (IA First)` via MCP, conferir cada tool contra os docs das Sprints 1/2/3 e gerar um **JSON corrigido e reimportável** focando no problema da `buscar_agenda`.
+Objetivo: sair do “não agenda nada” com uma rodada de diagnóstico real no workflow do n8n e corrigir a causa raiz, não só o JSON superficial.
 
-## Diagnóstico já confirmado
-- O workflow no MCP está ativo e contém as tools esperadas.
-- O problema mais provável da `Tool Buscar Agenda` / `Tool Buscar Agenda por Periodo` **não é banco vazio**; é a configuração da tool no n8n/JSON:
-  - o print anterior mostrou `No parameters are set up to be filled by AI`;
-  - isso é compatível com tool executando sem `especialidade`/`turno`.
-- Há divergências ainda abertas entre o workflow aplicado e os docs:
-  1. `Tool Registrar Feedback` com `inputSchema` pendente.
-  2. `AI Agent Sofia` ainda com prompt antigo.
-  3. `Extrair Dados da Mensagem` ainda com placeholder da Groq key.
-- O JSON do workflow importável não está no repositório; então a correção precisa ser feita no **arquivo de import** entregue ao usuário, não no código React.
+O que já ficou claro pela auditoria
+- O banco não parece ser o gargalo principal: a função `gerar_agenda_mes` existe, cria slots com `status='disponivel'`, `medico_id` e `especialidade_id`.
+- O app React também está coerente com esse modelo.
+- O maior suspeito continua sendo o workflow n8n:
+  1. parâmetros não chegando nas tools (`especialidade` / `turno`);
+  2. ordem errada entre `listar_especialidades` e `buscar_agenda`;
+  3. extração da mensagem antes do AI Agent;
+  4. prompt da Sofia não forçando a sequência correta;
+  5. possível divergência entre o workflow ativo e o JSON v4 que você está vendo.
+- Também confirmei que o arquivo `Atendimento_-_Clinica_Medica_IA_First_v4.json` não está no repositório local, então a correção precisa ser baseada no workflow real via MCP + novo JSON exportável.
 
-## O que vou fazer na implementação
-1. **Ler o workflow real via MCP node por node**
-   - comparar `description`, `inputSchema`, `jsCode`, conexões e nomes das 9 tools:
-     `buscar_paciente`, `salvar_paciente`, `buscar_agenda`, `buscar_agenda_por_periodo`, `listar_especialidades`, `confirmar_agendamento`, `registrar_feedback`, `criar_solicitacao`, `transferir_humano`.
+Plano de ação
+1. Auditar o workflow real no MCP nó por nó
+- Ler o workflow `Atendimento - Clinica Medica (IA First)` via MCP.
+- Conferir especialmente:
+  - `Extrair Dados da Mensagem`
+  - `Supabase - Buscar Paciente`
+  - `Verificar se Bot Ativo`
+  - `IF Bot Ativo?`
+  - `AI Agent Sofia`
+  - `Tool Listar Especialidades`
+  - `Tool Buscar Agenda`
+  - `Tool Buscar Agenda por Periodo`
+  - `Tool Confirmar Agendamento`
+  - `Tool Registrar Feedback`
+  - `Tool Transferir Humano`
+- Validar nomes, conexões, `description`, `inputSchema`, `schemaType`, `jsonSchemaExample`, `name` interno e `jsCode`.
 
-2. **Corrigir o JSON importável do workflow**
-   - gerar uma nova versão, sem sobrescrever a anterior:
-     `Atendimento_-_Clinica_Medica_IA_First_v3.json`.
-   - ajustar especialmente:
-     - `Tool Buscar Agenda` com `inputSchema` válido para `especialidade`;
-     - `Tool Buscar Agenda por Periodo` com `inputSchema` válido para `especialidade` + `turno`;
-     - `Tool Registrar Feedback` com schema correto;
-     - conferir se as tools estão marcadas de forma que a IA realmente consiga preencher os parâmetros no n8n importado.
+2. Fazer testes controlados no MCP para reproduzir o bug
+- Executar o workflow com payloads simulados, cobrindo pelo menos:
+  - “oi”
+  - “quero marcar consulta”
+  - “quero pediatria”
+  - “prefiro de tarde”
+  - “pode marcar esse horário”
+- Objetivo dos testes:
+  - ver se o AI Agent chama `listar_especialidades` antes de `buscar_agenda`;
+  - confirmar se `especialidade` chega preenchida na tool;
+  - confirmar se `turno` chega preenchido na tool de período;
+  - identificar o ponto exato onde a conversa quebra.
 
-3. **Endurecer a lógica de agenda**
-   - manter a busca por `especialidades` ativas;
-   - revisar o `jsCode` da `buscar_agenda` e `buscar_agenda_por_periodo` para evitar falso negativo por nome mal normalizado;
-   - revisar `confirmar_agendamento` para casar corretamente com o slot disponível já gerado.
+3. Corrigir a camada de tools
+- Ajustar `buscar_agenda` e `buscar_agenda_por_periodo` para eliminar falsos negativos:
+  - normalização de acentos e caixa;
+  - fallback mais robusto para nome de especialidade;
+  - retorno mais útil quando não houver match exato.
+- Garantir que todas as tools usem schema compatível com preenchimento pela IA.
+- Revisar `confirmar_agendamento` para garantir que só faça `PATCH` no slot existente `disponivel`.
 
-4. **Alinhar o agente com as tools**
-   - revisar o `systemMessage` do `AI Agent Sofia` para garantir que ele:
-     - use `listar_especialidades` antes de oferecer opções;
-     - use `buscar_agenda` / `buscar_agenda_por_periodo` corretamente;
-     - não cite ferramenta antiga;
-     - siga o fluxo de confirmação e feedback.
-   - Se você quiser manter emojis no prompt, eu preservo isso e corrijo só a parte funcional.
+4. Atualizar o `systemMessage` da Sofia
+- Incluir passo explícito e obrigatório:
+  - sempre chamar `listar_especialidades` antes de qualquer `buscar_agenda`;
+  - só oferecer especialidades retornadas pela tool;
+  - usar `buscar_agenda_por_periodo` apenas quando houver preferência de turno;
+  - nunca afirmar indisponibilidade sem consultar tool.
+- Manter o prompt alinhado ao fluxo real do banco e sem ambiguidades.
 
-5. **Validar o JSON antes de te entregar**
-   - revisar estrutura do workflow para import no n8n;
-   - validar no MCP por execução controlada, simulando:
-     - `quero dermatologia`
-     - `prefiro de tarde`
-     - confirmação de horário
-   - confirmar que a falha “não encontrou horário” deixa de acontecer quando existem slots no banco.
+5. Gerar uma nova versão importável
+- Criar `Atendimento_-_Clinica_Medica_IA_First_v5.json`.
+- Essa versão vai refletir o workflow corrigido de verdade, não só ajustes parciais no v4.
+- Preservar os comportamentos já esperados:
+  - handoff humano;
+  - feedback;
+  - memória por janela;
+  - cron nodes.
 
-## Entrega
-- 1 arquivo novo:
-  - `Atendimento_-_Clinica_Medica_IA_First_v3.json`
-- sem apagar o v2, para você ter rollback.
+6. Validar ponta a ponta
+- Rodar novamente os testes via MCP após a correção.
+- Critérios de aceite:
+  - a Sofia encontra horários para especialidades com slots futuros;
+  - o turno filtra corretamente;
+  - o slot confirmado deixa de aparecer nas buscas;
+  - o fluxo de conversa não inventa especialidades.
 
-## Validação que vou rodar
+Entregas
+- 1 novo JSON corrigido: `Atendimento_-_Clinica_Medica_IA_First_v5.json`
+- relatório curto do erro raiz encontrado em cada ponto crítico
+- checklist de importação e validação no n8n
+
+Detalhes técnicos
+- Vou tratar isso como problema de workflow ativo, não de frontend.
+- A prioridade é comparar o workflow ativo com o comportamento esperado dos docs e do banco.
+- Se eu encontrar divergência entre o ativo e o v4, o v5 será gerado a partir do workflow auditado e corrigido.
+- Se o MCP não permitir editar diretamente a estrutura, faço a correção no JSON importável e valido por execução controlada.
+
+Resultado esperado
 ```text
-1. Importar v3
-2. Executar fluxo com especialidade válida
-3. Verificar se a tool recebe `especialidade`
-4. Executar fluxo com preferência de turno
-5. Verificar se a tool recebe `turno`
-6. Confirmar que horários reais são retornados
-7. Testar ponta a ponta no n8n/MCP
-```
+Paciente: "quero pediatria"
+Sofia:
+1. chama listar_especialidades
+2. valida que pediatria existe
+3. chama buscar_agenda com especialidade preenchida
+4. retorna horários reais
 
-## Detalhes técnicos
-- Como o MCP atual é essencialmente leitura/execução, o caminho correto é **corrigir o JSON de importação** e depois reimportar.
-- O principal ajuste esperado é na representação do node `@n8n/n8n-nodes-langchain.toolCode`, porque o bug parece estar no schema/param binding da tool, não apenas no `jsCode`.
-- Também vou conferir se o workflow importado preserva:
-  - `sessionKey` por janela de 6h;
-  - admin handoff `5583999915242`;
-  - tools conectadas no `ai_tool`;
-  - cron nodes intactos.
+Paciente: "prefiro de tarde"
+Sofia:
+1. chama buscar_agenda_por_periodo com especialidade + turno
+2. filtra horários válidos
+3. oferece opções reais
+```
