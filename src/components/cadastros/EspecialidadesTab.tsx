@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ICONES_ESPECIALIDADE, getIconeEspecialidade } from "@/lib/icones-especialidade";
 import {
   Table,
@@ -44,6 +45,7 @@ export function EspecialidadesTab() {
   const { data: especialidades, isLoading } = useEspecialidades();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Especialidade | null>(null);
+  const [removingId, setRemovingId] = useState<Especialidade | null>(null);
   const queryClient = useQueryClient();
 
   const form = useForm<FormValues>({
@@ -98,6 +100,7 @@ export function EspecialidadesTab() {
     onSuccess: () => {
       toast({ title: "Especialidade removida" });
       queryClient.invalidateQueries({ queryKey: ["especialidades"] });
+      setRemovingId(null);
     },
     onError: (e: Error) =>
       toast({ title: "Erro ao remover", description: e.message, variant: "destructive" }),
@@ -235,9 +238,8 @@ export function EspecialidadesTab() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => {
-                      if (confirm(`Remover ${e.nome}?`)) remover.mutate(e.id);
-                    }}
+                    onClick={() => setRemovingId(e)}
+                    aria-label="Remover especialidade"
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
