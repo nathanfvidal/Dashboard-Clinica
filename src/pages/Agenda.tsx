@@ -115,6 +115,48 @@ export default function Agenda() {
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  // Remarcação via drag-and-drop com atualização otimista pra UI responsiva
+  const remarcar = useMutation({
+    mutationFn: async ({
+      id,
+      data_consulta,
+      horario,
+    }: {
+      id: string;
+      data_consulta: string;
+      horario: string;
+    }) => {
+      const { error } = await supabase
+        .from("agendamentos")
+        .update({ data_consulta, horario })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: ["agendamentos"] });
+      const prev = queryClient.getQueryData<Agendamento[]>(["agendamentos"]);
+      queryClient.setQueryData<Agendamento[]>(["agendamentos"], (old) =>
+        (old ?? []).map((a) =>
+          a.id === vars.id
+            ? { ...a, data_consulta: vars.data_consulta, horario: vars.horario }
+            : a,
+        ),
+      );
+      return { prev };
+    },
+    onError: (e: Error, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(["agendamentos"], ctx.prev);
+      toast({ title: "Erro ao remarcar", description: e.message, variant: "destructive" });
+    },
+    onSuccess: (_d, vars) => {
+      toast({
+        title: "Agendamento remarcado",
+        description: `${vars.data_consulta.split("-").reverse().join("/")} às ${vars.horario.slice(0, 5)}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
