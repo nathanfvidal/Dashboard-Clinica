@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,

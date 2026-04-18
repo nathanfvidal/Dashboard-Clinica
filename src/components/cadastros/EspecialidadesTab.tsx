@@ -250,6 +250,25 @@ export function EspecialidadesTab() {
           </TableBody>
         </Table>
       </div>
+
+      <ConfirmDialog
+        open={!!removingId}
+        onOpenChange={(o) => !o && setRemovingId(null)}
+        title="Remover especialidade"
+        description={
+          removingId && (
+            <>
+              Tem certeza que deseja remover{" "}
+              <span className="font-semibold text-foreground">{removingId.nome}</span>?
+              Esta ação não pode ser desfeita.
+            </>
+          )
+        }
+        confirmLabel="Remover"
+        pendingLabel="Removendo..."
+        pending={remover.isPending}
+        onConfirm={() => removingId && remover.mutate(removingId.id)}
+      />
     </div>
   );
 }
