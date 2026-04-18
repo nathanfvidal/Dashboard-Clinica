@@ -245,7 +245,7 @@ export function CalendarioSemana({
                   <div key={h} className="h-14 border-b border-border/30" />
                 ))}
 
-                {/* Linha indicadora da hora atual — só renderiza no dia de hoje e dentro da faixa visível */}
+                {/* Linha indicadora da hora atual — apenas o traço dentro da coluna do dia de hoje */}
                 {(() => {
                   if (!isSameDay(d, agora)) return null;
                   const minutosDesdeInicio =
