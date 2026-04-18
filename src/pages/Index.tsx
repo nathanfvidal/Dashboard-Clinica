@@ -137,7 +137,7 @@ const Index = () => {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Agendamentos hoje" value={agendHoje} icon={CalendarCheck} accent="primary" />
-        <KpiCard label="Pacientes cadastrados" value={pacientes.length} icon={Users} accent="blue" />
+        <KpiCard label="Pacientes cadastrados" value={pacientes.length} icon={Users} accent="cyan" />
         <KpiCard label="Fila humana" value={filaHumana} icon={MessageSquare} accent="amber" />
         <KpiCard
           label="Feedback médio"
