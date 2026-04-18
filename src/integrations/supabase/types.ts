@@ -20,8 +20,11 @@ export type Database = {
           data_consulta: string
           especialidade: string
           especialidade_id: string | null
+          feedback_solicitado_at: string | null
           horario: string
           id: string
+          lembrete_2h_enviado_at: string | null
+          lembrete_d1_enviado_at: string | null
           medico: string
           medico_id: string | null
           paciente_nome: string | null
@@ -33,8 +36,11 @@ export type Database = {
           data_consulta: string
           especialidade: string
           especialidade_id?: string | null
+          feedback_solicitado_at?: string | null
           horario: string
           id?: string
+          lembrete_2h_enviado_at?: string | null
+          lembrete_d1_enviado_at?: string | null
           medico: string
           medico_id?: string | null
           paciente_nome?: string | null
@@ -46,8 +52,11 @@ export type Database = {
           data_consulta?: string
           especialidade?: string
           especialidade_id?: string | null
+          feedback_solicitado_at?: string | null
           horario?: string
           id?: string
+          lembrete_2h_enviado_at?: string | null
+          lembrete_d1_enviado_at?: string | null
           medico?: string
           medico_id?: string | null
           paciente_nome?: string | null
@@ -254,6 +263,39 @@ export type Database = {
           },
         ]
       }
+      mensagens: {
+        Row: {
+          agente: string
+          conteudo: string | null
+          created_at: string
+          direcao: string
+          id: number
+          metadata: Json | null
+          paciente_telefone: string
+          tipo: string
+        }
+        Insert: {
+          agente?: string
+          conteudo?: string | null
+          created_at?: string
+          direcao: string
+          id?: number
+          metadata?: Json | null
+          paciente_telefone: string
+          tipo?: string
+        }
+        Update: {
+          agente?: string
+          conteudo?: string | null
+          created_at?: string
+          direcao?: string
+          id?: number
+          metadata?: Json | null
+          paciente_telefone?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       pacientes: {
         Row: {
           created_at: string | null
@@ -261,6 +303,7 @@ export type Database = {
           nome: string | null
           status_sessao: string | null
           telefone: string
+          ultima_atividade_bot: string | null
           ultima_interacao: string | null
         }
         Insert: {
@@ -269,6 +312,7 @@ export type Database = {
           nome?: string | null
           status_sessao?: string | null
           telefone: string
+          ultima_atividade_bot?: string | null
           ultima_interacao?: string | null
         }
         Update: {
@@ -277,6 +321,7 @@ export type Database = {
           nome?: string | null
           status_sessao?: string | null
           telefone?: string
+          ultima_atividade_bot?: string | null
           ultima_interacao?: string | null
         }
         Relationships: []
@@ -321,7 +366,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_metricas_diarias: {
+        Row: {
+          agendamentos_criados: number | null
+          conversas_unicas: number | null
+          dia: string | null
+          msgs_in: number | null
+          msgs_out: number | null
+          tempo_medio_resposta_seg: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       gerar_agenda_mes: {
