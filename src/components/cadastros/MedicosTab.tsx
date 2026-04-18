@@ -44,7 +44,7 @@ const schema = z.object({
   especialidade_id: z.string().min(1, "Selecione a especialidade"),
   crm: z.string().optional(),
   telefone: z.string().optional(),
-  ativo: z.boolean().default(true),
+  ativo: z.boolean(),
 });
 
 type FormValues = z.infer<typeof schema>;

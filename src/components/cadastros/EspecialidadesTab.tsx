@@ -33,7 +33,7 @@ const schema = z.object({
   nome: z.string().min(2, "Informe o nome"),
   descricao: z.string().optional(),
   icone: z.string().optional(),
-  ativo: z.boolean().default(true),
+  ativo: z.boolean(),
 });
 
 type FormValues = z.infer<typeof schema>;
