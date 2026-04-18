@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { addDays, eachDayOfInterval, endOfWeek, format, isToday, startOfWeek } from "date-fns";
+import { useEffect, useMemo, useState } from "react";
+import { addDays, eachDayOfInterval, endOfWeek, format, isSameDay, isToday, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,22 @@ export function CalendarioSemana({
   // ID sendo arrastado e indicador visual da zona alvo
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [alvo, setAlvo] = useState<{ data: string; slot: number } | null>(null);
+
+  // Relógio atualizado a cada minuto para a linha "agora"
+  const [agora, setAgora] = useState<Date>(() => new Date());
+  useEffect(() => {
+    // Sincroniza a primeira atualização com a virada do minuto e depois mantém ritmo de 60s
+    const msAteProximoMinuto = 60_000 - (Date.now() % 60_000);
+    let intervalo: ReturnType<typeof setInterval> | undefined;
+    const timeout = setTimeout(() => {
+      setAgora(new Date());
+      intervalo = setInterval(() => setAgora(new Date()), 60_000);
+    }, msAteProximoMinuto);
+    return () => {
+      clearTimeout(timeout);
+      if (intervalo) clearInterval(intervalo);
+    };
+  }, []);
 
   const dias = useMemo(() => {
     const inicio = startOfWeek(semanaRef, { weekStartsOn: 0 });
