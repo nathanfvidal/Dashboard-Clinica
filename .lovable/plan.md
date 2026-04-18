@@ -1,62 +1,74 @@
 
 
-## Plano: Sincronizar n8n com o sistema atual
+## Plano: Redesign geral — pegada Apple/Glassmorphism
 
-### Diagnóstico
+### Diagnóstico visual atual
 
-Comparei o workflow `Atendimento - Clinica Medica (IA First)` (id `eqqEnl042R9NZN_UWToot`, atualizado 18/04) com o estado atual do app/banco. Encontrei **6 lacunas** que precisam ser corrigidas no n8n:
+Inspecionei `/cadastros`, dashboard (`Index.tsx`), `HorariosMedicoDialog`, `ListaFeedbacks`, `KpiCard`, `AppShell` e `index.css`. Problemas reais encontrados:
 
-| # | Problema no n8n hoje | Impacto |
-|---|----------------------|---------|
-| 1 | `Tool Buscar Agenda` tem `espMap` hardcoded com 6 especialidades | Especialidades novas cadastradas em `/cadastros` não funcionam |
-| 2 | `Tool Buscar Agenda por Periodo` mesma coisa | Idem |
-| 3 | `Tool Confirmar Agendamento` faz INSERT novo em vez de UPDATE no slot `disponivel` | Quebra a lógica do botão "Gerar agenda" — slots gerados nunca somem |
-| 4 | `Tool Listar Especialidades` (verificar) — pode estar com lista fixa | Sofia oferece especialidades inexistentes |
-| 5 | Falta `Tool Registrar Feedback` | Botão pronto no app mas sem coleta via WhatsApp |
-| 6 | System prompt da Sofia tem **emojis** (🩺❤️🌿🌸🦴👶📅✅💙😊🚨) e lista fixa de especialidades | Viola regra "nunca emoji"; Sofia mente sobre especialidades |
+1. **Inconsistência de tamanhos** — botões "Horários" (`size=sm`), "Gerar agenda" (`size=sm` com texto longo) e ícones de editar/remover (`size=icon` 36px) brigam visualmente na linha de ações.
+2. **Cards de feedback** — `ListaFeedbacks` usa `Card` cru, sem hierarquia, com estrelas pequenas e nome em peso igual ao comentário. KPIs (`KpiCard`) já têm glow, mas feedbacks/listas não acompanham.
+3. **HorariosMedicoDialog compacto** — `LinhaHorarioSortable` espreme drag handle + select + 2 inputs hora + duração + 2 botões em uma única linha sem respiro; preview semana abaixo aparece colado.
+4. **Falta linguagem visual unificada** — não existe "glass surface" reutilizável; cards usam `bg-card` chapado em cima do gradiente do body, perdendo a profundidade que o `index.css` já prepara.
+5. **Tipografia** — sem hierarquia clara (tudo `text-sm`/`text-base`), sem tracking apertado nos títulos (estilo Apple).
+6. **Sidebar/AppShell** — funcional mas sem o blur/translucidez que define glassmorphism.
 
 ### O que vou entregar
 
-Um único documento consolidado **`docs/n8n-atualizacoes-completas.md`** contendo, para cada uma das 6 mudanças:
+**Não vou reescrever tudo** — vou criar **primitivos** e aplicar nos pontos críticos.
 
-1. **Nome exato do node** no editor n8n
-2. **Onde clicar** (passo a passo)
-3. **Código JS completo, pronto pra colar** (não trechos parciais)
-4. **Input schema JSON completo** quando aplicável
-5. **System prompt da Sofia 100% reescrito** sem emojis e sem lista fixa de especialidades, com instrução de feedback ao final do atendimento
+#### 1. Sistema de design (tokens + classes)
+- `src/index.css`: adicionar tokens `--glass-bg`, `--glass-border`, `--glass-blur` e classes utilitárias `.glass-card`, `.glass-panel`, `.glass-subtle` (backdrop-blur + bg translúcido + borda 1px com gradiente sutil).
+- Refinar tipografia: `font-feature-settings` com `cv11`, headings com `tracking-tight` e `font-semibold`.
+- Adicionar `--shadow-soft` e `--shadow-pop` para hierarquia de elevação Apple-like.
 
-Os dois `.md` antigos (`n8n-integracao-cadastros.md` e `n8n-tool-registrar-feedback.md`) serão substituídos por esse documento único, mais completo e consistente com o código atual do app (status `ia`/`humano`, ícones Lucide, comando `/bot`, etc).
+#### 2. Componente novo: `GlassCard`
+- `src/components/ui/glass-card.tsx` — wrapper sobre `Card` com blur, borda gradiente sutil e hover lift opcional. Reutilizável em feedbacks, KPIs futuros, dialogs.
 
-### Estrutura do documento
+#### 3. Refatorar `LinhaHorarioSortable`
+- Layout em **2 linhas** dentro de um glass-row: linha 1 = handle + dia (chip maior) + ações; linha 2 = inputs hora-início → hora-fim → duração com labels micro acima.
+- Aumentar altura, espaço entre campos, ícones 16px alinhados verticalmente.
+- Estado de conflito (já existente) ganha borda animada vermelha + ícone `AlertTriangle` lucide.
+
+#### 4. Refatorar `HorariosMedicoDialog`
+- Header com avatar/inicial do médico em círculo glass + nome grande.
+- Botões "Aplicar template" e "Adicionar linha" mesma altura (`size="default"`), agrupados em toolbar com separador.
+- `PreviewSemana` ganha card próprio com título e fica em coluna lateral em telas ≥1280px (grid 2 col), empilhado abaixo em telas menores.
+
+#### 5. Refatorar `ListaFeedbacks` (e `ListaAtendimentos` por consistência)
+- Cada item vira `GlassCard` com: avatar circular (inicial + cor por nota), nome em `font-semibold tracking-tight`, estrelas maiores (16px) com cor `--accent-amber`, comentário em `text-muted-foreground` itálico, timestamp à direita.
+- Hover: lift sutil + glow.
+
+#### 6. Padronizar botões da `MedicosTab`
+- Todos os botões de ação na mesma altura (`size="sm"` h-9), ícones 14px, gap consistente. "Gerar agenda" e "Horários" como `variant="outline"` com hover primary; editar/remover como `variant="ghost" size="icon" className="h-9 w-9"` para casar altura.
+
+#### 7. AppShell / Sidebar
+- Sidebar ganha `backdrop-blur-xl` + `bg-sidebar/70` para flutuar sobre o gradiente do body.
+- Topbar (se houver) idem.
+
+### Arquivos afetados
 
 ```text
-docs/n8n-atualizacoes-completas.md
-├── 0. Visão geral + ordem recomendada de aplicação
-├── 1. Tool Listar Especialidades (jsCode completo)
-├── 2. Tool Buscar Agenda (jsCode completo, sem espMap)
-├── 3. Tool Buscar Agenda por Periodo (jsCode completo, com filtro turno)
-├── 4. Tool Confirmar Agendamento (jsCode completo, UPDATE do slot)
-├── 5. Tool Registrar Feedback (criar do zero — code + schema + posição)
-├── 6. AI Agent Sofia — system prompt reescrito (sem emojis, sem lista fixa)
-├── 7. Checklist de validação end-to-end
-└── 8. Tabela resumo (tool → mudança → motivo)
+src/index.css                                       ← tokens glass + tipografia
+src/components/ui/glass-card.tsx                    ← NOVO
+src/components/cadastros/LinhaHorarioSortable.tsx   ← layout 2 linhas
+src/components/cadastros/HorariosMedicoDialog.tsx   ← header + grid + toolbar
+src/components/cadastros/MedicosTab.tsx             ← padronizar alturas botões
+src/components/cadastros/PreviewSemana.tsx          ← card próprio + título
+src/components/dashboard/ListaFeedbacks.tsx         ← GlassCard + avatar + estrelas
+src/components/dashboard/ListaAtendimentos.tsx      ← mesma linguagem
+src/components/dashboard/KpiCard.tsx                ← migrar para glass-card
+src/components/layout/AppShell.tsx                  ← sidebar translúcida
 ```
 
-### Pontos técnicos importantes que vão entrar no doc
+### Fora de escopo
 
-- **Status sessão**: confirmar uso de `'ia'` (ativo) e `'humano'` (pausado) — alinhado com `ListaAtendimentos.tsx` e `useAlertaBotPausado.ts`
-- **Slots `disponivel`**: gerados por `gerar_agenda_mes()` no Supabase; `confirmar_agendamento` deve fazer `PATCH` mudando para `confirmado` em vez de criar novo registro
-- **System prompt sem emojis**: substituir todos os 🏥📅✅💙😊🚨 por marcadores textuais (ex: `[ATENÇÃO]`, `*Resumo:*`, `*Confirmado*`) — compatível com WhatsApp que não renderiza Lucide
-- **Feedback**: após `confirmar_agendamento` ou despedida, Sofia pergunta nota 1-5 e chama `registrar_feedback`
-- **Anon key**: continua sendo a mesma (`eyJhbGc...Nyz1YI8`) — não vou expor service role
+- Não troco paleta de cores (azul-marinho + acentos já está coerente com Apple dark).
+- Não mudo estrutura de rotas, lógica de queries ou n8n.
+- Não adiciono libs novas — `backdrop-blur` é nativo do Tailwind.
+- Não mexo em `/agenda` ainda; se ficar bom no dashboard + cadastros, replicamos depois.
 
-### Arquivos do app
+### Resultado esperado
 
-**Nenhuma mudança no código React** nesta tarefa. É só documentação/n8n. O app já está pronto para receber os dados corretos.
-
-### Não vou fazer
-
-- Editar o workflow n8n diretamente (MCP do n8n não permite edição, só leitura/execução — confirmado nas tentativas anteriores). Tudo é manual seguindo o `.md`.
-- Criar autenticação ou roles novos.
-- Mudar o schema do banco.
+Visual coeso tipo macOS Sonoma / iOS 17: superfícies translúcidas com blur sobre o gradiente do body, hierarquia tipográfica clara, botões com mesma altura, cards de feedback respiráveis, dialog de horários organizado em grid com preview lateral.
 
