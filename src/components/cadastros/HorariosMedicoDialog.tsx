@@ -232,6 +232,8 @@ export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
         </div>
 
         <PreviewSemana linhas={linhas} />
+
+        <DialogFooter>
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
