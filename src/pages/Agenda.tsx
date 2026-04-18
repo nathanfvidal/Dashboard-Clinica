@@ -154,7 +154,7 @@ export default function Agenda() {
         </div>
       </div>
 
-      <GlassCard>
+      <GlassCard spotlight>
         <GlassCardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="grid gap-1.5">
             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -217,7 +217,7 @@ export default function Agenda() {
       </GlassCard>
 
       {visao === "tabela" && (
-      <GlassCard>
+      <GlassCard spotlight>
         <GlassCardContent className="p-0">
           <Table>
             <TableHeader>
@@ -307,7 +307,7 @@ export default function Agenda() {
       )}
 
       {visao === "semana" && (
-        <GlassCard>
+        <GlassCard spotlight>
           <GlassCardContent className="p-4">
             <CalendarioSemana
               semanaRef={refData}
@@ -323,7 +323,7 @@ export default function Agenda() {
       )}
 
       {visao === "mes" && (
-        <GlassCard>
+        <GlassCard spotlight>
           <GlassCardContent className="p-4">
             <CalendarioMes
               mesRef={refData}
