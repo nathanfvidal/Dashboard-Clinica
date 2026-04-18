@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Activity, CalendarDays, LayoutDashboard, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAlertaBotPausado } from "@/hooks/useAlertaBotPausado";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -11,6 +12,8 @@ const navItems = [
 
 export default function AppShell() {
   const location = useLocation();
+  // Notificação global (toast + bip) ao detectar bot pausado em tempo real
+  useAlertaBotPausado();
 
   return (
     <div className="min-h-screen text-foreground">
