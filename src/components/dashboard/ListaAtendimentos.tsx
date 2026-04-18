@@ -1,8 +1,11 @@
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { statusBadgeClass } from "@/lib/status";
@@ -23,6 +26,8 @@ const STATUS_HUMANO = new Set(["humano", "atendente", "pausado"]);
 
 export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[] }) {
   const queryClient = useQueryClient();
+
+  const [soPausados, setSoPausados] = useState(false);
 
   // Busca o status_sessao dos pacientes desta lista para sabermos se o bot está ativo
   const telefones = atendimentos.map((a) => a.paciente_telefone);
@@ -76,10 +81,44 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  // Aplica o filtro "só pausados" — útil pra recepção achar quem está esperando humano
+  const atendimentosVisiveis = useMemo(() => {
+    if (!soPausados) return atendimentos;
+    return atendimentos.filter((a) =>
+      STATUS_HUMANO.has((sessaoPorTelefone.get(a.paciente_telefone) ?? "").toLowerCase()),
+    );
+  }, [atendimentos, sessaoPorTelefone, soPausados]);
+
+  const totalPausados = useMemo(
+    () =>
+      atendimentos.filter((a) =>
+        STATUS_HUMANO.has((sessaoPorTelefone.get(a.paciente_telefone) ?? "").toLowerCase()),
+      ).length,
+    [atendimentos, sessaoPorTelefone],
+  );
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Atendimentos humanos</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-base">Atendimentos humanos</CardTitle>
+          {totalPausados > 0 && (
+            <Badge variant="outline" className="border-[hsl(var(--accent-amber)/0.3)] bg-[hsl(var(--accent-amber)/0.15)] text-[hsl(var(--accent-amber))]">
+              {totalPausados} bot{totalPausados !== 1 ? "s" : ""} pausado{totalPausados !== 1 ? "s" : ""}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="filtro-pausados" className="cursor-pointer text-xs text-muted-foreground">
+            Mostrar só bots pausados
+          </Label>
+          <Switch
+            id="filtro-pausados"
+            checked={soPausados}
+            onCheckedChange={setSoPausados}
+            disabled={atendimentos.length === 0}
+          />
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
@@ -95,14 +134,16 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
             </TableRow>
           </TableHeader>
           <TableBody>
-            {atendimentos.length === 0 && (
+            {atendimentosVisiveis.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
-                  Nenhum atendimento humano no momento
+                  {soPausados
+                    ? "Nenhum bot pausado no momento"
+                    : "Nenhum atendimento humano no momento"}
                 </TableCell>
               </TableRow>
             )}
-            {atendimentos.map((a) => {
+            {atendimentosVisiveis.map((a) => {
               const sessao = sessaoPorTelefone.get(a.paciente_telefone);
               const botPausado = STATUS_HUMANO.has((sessao ?? "").toLowerCase());
               const novoStatus = botPausado ? "ia" : "humano";
