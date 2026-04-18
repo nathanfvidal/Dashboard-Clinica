@@ -79,6 +79,22 @@ export function CalendarioSemana({
     return eachDayOfInterval({ start: inicio, end: fim });
   }, [semanaRef]);
 
+  // Rola até a hora atual quando a semana exibida contém o dia de hoje
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const semanaTemHoje = dias.some((d) => isSameDay(d, new Date()));
+    if (!semanaTemHoje) return;
+    const minutosDesdeInicio =
+      (new Date().getHours() - HORA_INICIO) * 60 + new Date().getMinutes();
+    const totalMin = (HORA_FIM - HORA_INICIO) * 60;
+    if (minutosDesdeInicio < 0 || minutosDesdeInicio > totalMin) return;
+    const topAgora = (minutosDesdeInicio / 60) * PX_POR_HORA;
+    // Centraliza a linha na viewport do scroll, com pequena folga superior
+    const alvoScroll = Math.max(0, topAgora - container.clientHeight / 2);
+    container.scrollTo({ top: alvoScroll, behavior: "smooth" });
+  }, [dias]);
+
   const horas = useMemo(() => {
     const arr: number[] = [];
     for (let h = HORA_INICIO; h <= HORA_FIM; h++) arr.push(h);
