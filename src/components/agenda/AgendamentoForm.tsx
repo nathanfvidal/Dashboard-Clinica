@@ -127,7 +127,9 @@ export function AgendamentoForm({ initial, onDone }: Props) {
     <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
-          <Label>Especialidade</Label>
+          <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Especialidade
+          </Label>
           <Select
             value={especialidadeId}
             onValueChange={(v) => {
@@ -135,7 +137,7 @@ export function AgendamentoForm({ initial, onDone }: Props) {
               setValue("medico_id", "");
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-10 border-border/50 bg-background/40">
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
             <SelectContent>
@@ -151,13 +153,15 @@ export function AgendamentoForm({ initial, onDone }: Props) {
           )}
         </div>
         <div className="grid gap-1.5">
-          <Label>Médico</Label>
+          <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Médico
+          </Label>
           <Select
             value={medicoId}
             onValueChange={(v) => setValue("medico_id", v)}
             disabled={!especialidadeId}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-10 border-border/50 bg-background/40">
               <SelectValue
                 placeholder={especialidadeId ? "Selecione..." : "Escolha a especialidade"}
               />
@@ -175,32 +179,73 @@ export function AgendamentoForm({ initial, onDone }: Props) {
           )}
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="data_consulta">Data</Label>
-          <Input id="data_consulta" type="date" {...register("data_consulta")} />
+          <Label
+            htmlFor="data_consulta"
+            className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+          >
+            Data
+          </Label>
+          <Input
+            id="data_consulta"
+            type="date"
+            className="h-10 border-border/50 bg-background/40 tabular-nums"
+            {...register("data_consulta")}
+          />
           {errors.data_consulta && (
             <p className="text-xs text-destructive">{errors.data_consulta.message}</p>
           )}
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="horario">Horário</Label>
-          <Input id="horario" type="time" {...register("horario")} />
+          <Label
+            htmlFor="horario"
+            className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+          >
+            Horário
+          </Label>
+          <Input
+            id="horario"
+            type="time"
+            className="h-10 border-border/50 bg-background/40 tabular-nums"
+            {...register("horario")}
+          />
           {errors.horario && <p className="text-xs text-destructive">{errors.horario.message}</p>}
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="paciente_telefone">Telefone do paciente</Label>
-          <Input id="paciente_telefone" placeholder="55119..." {...register("paciente_telefone")} />
+          <Label
+            htmlFor="paciente_telefone"
+            className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+          >
+            Telefone do paciente
+          </Label>
+          <Input
+            id="paciente_telefone"
+            placeholder="55119..."
+            className="h-10 border-border/50 bg-background/40 tabular-nums"
+            {...register("paciente_telefone")}
+          />
           {errors.paciente_telefone && (
             <p className="text-xs text-destructive">{errors.paciente_telefone.message}</p>
           )}
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="paciente_nome">Nome do paciente</Label>
-          <Input id="paciente_nome" {...register("paciente_nome")} />
+          <Label
+            htmlFor="paciente_nome"
+            className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+          >
+            Nome do paciente
+          </Label>
+          <Input
+            id="paciente_nome"
+            className="h-10 border-border/50 bg-background/40"
+            {...register("paciente_nome")}
+          />
         </div>
         <div className="grid gap-1.5 sm:col-span-2">
-          <Label>Status</Label>
+          <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Status
+          </Label>
           <Select value={status} onValueChange={(v) => setValue("status", v)}>
-            <SelectTrigger>
+            <SelectTrigger className="h-10 border-border/50 bg-background/40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -213,11 +258,11 @@ export function AgendamentoForm({ initial, onDone }: Props) {
           </Select>
         </div>
       </div>
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="ghost" onClick={onDone}>
+      <div className="flex justify-end gap-2 border-t border-border/40 pt-4">
+        <Button type="button" variant="ghost" className="h-10" onClick={onDone}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={mutation.isPending}>
+        <Button type="submit" className="h-10 px-6" disabled={mutation.isPending}>
           {mutation.isPending ? "Salvando..." : isEdit ? "Atualizar" : "Criar agendamento"}
         </Button>
       </div>
