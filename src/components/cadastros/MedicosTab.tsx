@@ -332,7 +332,7 @@ export function MedicosTab() {
             })}
           </TableBody>
         </Table>
-      </div>
+      </GlassCard>
 
       <HorariosMedicoDialog
         medico={horariosMedico}
