@@ -237,7 +237,9 @@ export function EspecialidadesTab() {
                   </Button>
                 </TableCell>
               </TableRow>
-            ))}
+              </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
