@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInputBR } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -159,8 +160,7 @@ export default function Agenda() {
             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Data
             </Label>
-            <Input
-              type="date"
+            <DateInputBR
               className="h-10 border-border/50 bg-background/40"
               value={filtroData}
               onChange={(e) => setFiltroData(e.target.value)}

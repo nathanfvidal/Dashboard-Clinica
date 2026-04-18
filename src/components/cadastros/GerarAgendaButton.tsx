@@ -4,7 +4,7 @@ import { CalendarPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateInputBR } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -79,9 +79,8 @@ export function GerarAgendaButton({ medicoId, medicoNome }: Props) {
             <Label htmlFor="ger-inicio" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Data início
             </Label>
-            <Input
+            <DateInputBR
               id="ger-inicio"
-              type="date"
               className="h-10 border-border/50 bg-background/40"
               value={inicio}
               onChange={(e) => setInicio(e.target.value)}
@@ -91,9 +90,8 @@ export function GerarAgendaButton({ medicoId, medicoNome }: Props) {
             <Label htmlFor="ger-fim" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Data fim
             </Label>
-            <Input
+            <DateInputBR
               id="ger-fim"
-              type="date"
               className="h-10 border-border/50 bg-background/40"
               value={fim}
               onChange={(e) => setFim(e.target.value)}
