@@ -111,7 +111,7 @@ export function EspecialidadesTab() {
         </p>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button onClick={abrirNovo} size="sm">
+            <Button onClick={abrirNovo} className="h-9">
               <Plus className="mr-2 h-4 w-4" /> Nova especialidade
             </Button>
           </DialogTrigger>
@@ -126,8 +126,10 @@ export function EspecialidadesTab() {
               className="grid gap-4"
             >
               <div className="grid gap-1.5">
-                <Label htmlFor="esp-nome">Nome</Label>
-                <Input id="esp-nome" {...form.register("nome")} />
+                <Label htmlFor="esp-nome" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Nome
+                </Label>
+                <Input id="esp-nome" className="h-10 border-border/50 bg-background/40" {...form.register("nome")} />
                 {form.formState.errors.nome && (
                   <p className="text-xs text-destructive">
                     {form.formState.errors.nome.message}
@@ -135,12 +137,14 @@ export function EspecialidadesTab() {
                 )}
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="esp-icone">Ícone</Label>
+                <Label htmlFor="esp-icone" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Ícone
+                </Label>
                 <Select
                   value={form.watch("icone") || "stethoscope"}
                   onValueChange={(v) => form.setValue("icone", v)}
                 >
-                  <SelectTrigger id="esp-icone">
+                  <SelectTrigger id="esp-icone" className="h-10 border-border/50 bg-background/40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -156,11 +160,13 @@ export function EspecialidadesTab() {
                 </Select>
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="esp-desc">Descrição</Label>
-                <Input id="esp-desc" {...form.register("descricao")} />
+                <Label htmlFor="esp-desc" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Descrição
+                </Label>
+                <Input id="esp-desc" className="h-10 border-border/50 bg-background/40" {...form.register("descricao")} />
               </div>
-              <div className="flex items-center justify-between rounded-md border border-border p-3">
-                <Label htmlFor="esp-ativo">Ativa</Label>
+              <div className="flex items-center justify-between rounded-xl border border-border/50 bg-background/40 px-4 py-3">
+                <Label htmlFor="esp-ativo" className="cursor-pointer">Ativa</Label>
                 <Switch
                   id="esp-ativo"
                   checked={form.watch("ativo")}
@@ -168,10 +174,10 @@ export function EspecialidadesTab() {
                 />
               </div>
               <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                <Button type="button" variant="ghost" className="h-10" onClick={() => setOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={salvar.isPending}>
+                <Button type="submit" className="h-10 px-6" disabled={salvar.isPending}>
                   {salvar.isPending ? "Salvando..." : "Salvar"}
                 </Button>
               </DialogFooter>
@@ -180,7 +186,7 @@ export function EspecialidadesTab() {
         </Dialog>
       </div>
 
-      <div className="rounded-md border border-border">
+      <div className="glass-card overflow-hidden p-0">
         <Table>
           <TableHeader>
             <TableRow>
