@@ -1,74 +1,61 @@
 
 
-## Plano: Redesign geral — pegada Apple/Glassmorphism
+## Plano: Correção dos problemas visuais identificados
 
-### Diagnóstico visual atual
+### Problemas reais que verifiquei no preview
 
-Inspecionei `/cadastros`, dashboard (`Index.tsx`), `HorariosMedicoDialog`, `ListaFeedbacks`, `KpiCard`, `AppShell` e `index.css`. Problemas reais encontrados:
+**1. Prévia da semana (modal de Horários) — crítico**
+Colunas espremidas truncando horários ("08:0", "06:3"), spinners verticais nativos do `<input type="time">` aparecem em cada linha do scroll do preview, badge "108 slots/semana" muito grande competindo com "Prévia da semana", coluna DOM vazia ocupando mesma largura. A prévia tenta mostrar 20 slots por dia em colunas de ~70px — não cabe.
 
-1. **Inconsistência de tamanhos** — botões "Horários" (`size=sm`), "Gerar agenda" (`size=sm` com texto longo) e ícones de editar/remover (`size=icon` 36px) brigam visualmente na linha de ações.
-2. **Cards de feedback** — `ListaFeedbacks` usa `Card` cru, sem hierarquia, com estrelas pequenas e nome em peso igual ao comentário. KPIs (`KpiCard`) já têm glow, mas feedbacks/listas não acompanham.
-3. **HorariosMedicoDialog compacto** — `LinhaHorarioSortable` espreme drag handle + select + 2 inputs hora + duração + 2 botões em uma única linha sem respiro; preview semana abaixo aparece colado.
-4. **Falta linguagem visual unificada** — não existe "glass surface" reutilizável; cards usam `bg-card` chapado em cima do gradiente do body, perdendo a profundidade que o `index.css` já prepara.
-5. **Tipografia** — sem hierarquia clara (tudo `text-sm`/`text-base`), sem tracking apertado nos títulos (estilo Apple).
-6. **Sidebar/AppShell** — funcional mas sem o blur/translucidez que define glassmorphism.
+**2. Inputs de hora em formato AM/PM**
+Os campos "08:00 AM" / "06:00 PM" no editor de horários aparecem em formato 12h porque o navegador respeita a locale do SO. Precisa forçar 24h via atributo + CSS para esconder o seletor AM/PM.
 
-### O que vou entregar
+**3. Inputs de data em formato US (mm/dd/yyyy)**
+Filtro de "Data" na agenda e "Gerar agenda" mostram placeholder US. Mesmo problema — locale.
 
-**Não vou reescrever tudo** — vou criar **primitivos** e aplicar nos pontos críticos.
+**4. Mês com capitalização errada**
+"Abril De 2026" — "De" capitalizado no meio (causa: `capitalize` no Tailwind aplica em cada palavra).
 
-#### 1. Sistema de design (tokens + classes)
-- `src/index.css`: adicionar tokens `--glass-bg`, `--glass-border`, `--glass-blur` e classes utilitárias `.glass-card`, `.glass-panel`, `.glass-subtle` (backdrop-blur + bg translúcido + borda 1px com gradiente sutil).
-- Refinar tipografia: `font-feature-settings` com `cv11`, headings com `tracking-tight` e `font-semibold`.
-- Adicionar `--shadow-soft` e `--shadow-pop` para hierarquia de elevação Apple-like.
+**5. Botões "Horários" e "Gerar agenda" ainda muito grandes em relação aos ícones de editar/excluir**
+Na linha do médico, os 4 botões têm tamanhos muito diferentes (botão com texto vs. ícone puro). Falta hierarquia.
 
-#### 2. Componente novo: `GlassCard`
-- `src/components/ui/glass-card.tsx` — wrapper sobre `Card` com blur, borda gradiente sutil e hover lift opcional. Reutilizável em feedbacks, KPIs futuros, dialogs.
+### O que vou fazer
 
-#### 3. Refatorar `LinhaHorarioSortable`
-- Layout em **2 linhas** dentro de um glass-row: linha 1 = handle + dia (chip maior) + ações; linha 2 = inputs hora-início → hora-fim → duração com labels micro acima.
-- Aumentar altura, espaço entre campos, ícones 16px alinhados verticalmente.
-- Estado de conflito (já existente) ganha borda animada vermelha + ícone `AlertTriangle` lucide.
+**A. Refazer a Prévia da semana** (`PreviewSemana.tsx`)
+- Trocar lista vertical de horários por **heatmap compacto**: cada dia vira uma coluna com blocos coloridos representando faixas horárias (não cada slot individual). Tipo: bloco verde 08–12, bloco verde 14–18.
+- Mostrar contagem total no topo do dia (ex: "20") como badge discreto.
+- No hover de um dia, abrir popover com a lista completa de horários daquele dia.
+- Remover o scroll vertical interno em cada coluna — fica plano.
 
-#### 4. Refatorar `HorariosMedicoDialog`
-- Header com avatar/inicial do médico em círculo glass + nome grande.
-- Botões "Aplicar template" e "Adicionar linha" mesma altura (`size="default"`), agrupados em toolbar com separador.
-- `PreviewSemana` ganha card próprio com título e fica em coluna lateral em telas ≥1280px (grid 2 col), empilhado abaixo em telas menores.
+**B. Forçar 24h nos inputs de tempo e PT-BR nos inputs de data**
+- Criar componentes leves `TimeInput24` e `DateInputBR` em `src/components/ui/` que envolvem `<input>` com:
+  - `lang="pt-BR"` no input
+  - CSS escondendo `::-webkit-calendar-picker-indicator` quando necessário
+  - Para tempo: validação que aceita só formato HH:MM
+- Substituir nos pontos críticos: `LinhaHorarioSortable`, filtro de data em `Agenda.tsx`, `GerarAgendaButton`.
 
-#### 5. Refatorar `ListaFeedbacks` (e `ListaAtendimentos` por consistência)
-- Cada item vira `GlassCard` com: avatar circular (inicial + cor por nota), nome em `font-semibold tracking-tight`, estrelas maiores (16px) com cor `--accent-amber`, comentário em `text-muted-foreground` itálico, timestamp à direita.
-- Hover: lift sutil + glow.
+**C. Corrigir capitalização do título do mês**
+- Em `CalendarioMes.tsx`, trocar `capitalize` por uma função `capitalizeFirst` que só capitaliza o primeiro caractere → "Abril de 2026".
+- Aplicar mesmo fix em `CalendarioSemana` se necessário.
 
-#### 6. Padronizar botões da `MedicosTab`
-- Todos os botões de ação na mesma altura (`size="sm"` h-9), ícones 14px, gap consistente. "Gerar agenda" e "Horários" como `variant="outline"` com hover primary; editar/remover como `variant="ghost" size="icon" className="h-9 w-9"` para casar altura.
-
-#### 7. AppShell / Sidebar
-- Sidebar ganha `backdrop-blur-xl` + `bg-sidebar/70` para flutuar sobre o gradiente do body.
-- Topbar (se houver) idem.
+**D. Padronizar ações na linha de médico**
+- Na `MedicosTab`, agrupar "Horários" e "Gerar agenda" como botões `outline` `size=sm h-8` com mesmo padding, e separá-los visualmente dos ícones de editar/excluir com `Separator` vertical.
+- Ou alternativa: transformar "Gerar agenda" num item dentro de um menu `…` (DropdownMenu) ao lado dos ícones, deixando só "Horários" como botão visível.
 
 ### Arquivos afetados
 
-```text
-src/index.css                                       ← tokens glass + tipografia
-src/components/ui/glass-card.tsx                    ← NOVO
-src/components/cadastros/LinhaHorarioSortable.tsx   ← layout 2 linhas
-src/components/cadastros/HorariosMedicoDialog.tsx   ← header + grid + toolbar
-src/components/cadastros/MedicosTab.tsx             ← padronizar alturas botões
-src/components/cadastros/PreviewSemana.tsx          ← card próprio + título
-src/components/dashboard/ListaFeedbacks.tsx         ← GlassCard + avatar + estrelas
-src/components/dashboard/ListaAtendimentos.tsx      ← mesma linguagem
-src/components/dashboard/KpiCard.tsx                ← migrar para glass-card
-src/components/layout/AppShell.tsx                  ← sidebar translúcida
-```
+- `src/components/cadastros/PreviewSemana.tsx` — refazer como heatmap
+- `src/components/cadastros/LinhaHorarioSortable.tsx` — input 24h
+- `src/components/ui/time-input.tsx` (novo) — wrapper 24h
+- `src/components/ui/date-input.tsx` (novo) — wrapper PT-BR
+- `src/pages/Agenda.tsx` — usar DateInputBR no filtro
+- `src/components/cadastros/GerarAgendaButton.tsx` — usar DateInputBR
+- `src/components/agenda/CalendarioMes.tsx` — fix capitalização
+- `src/components/cadastros/MedicosTab.tsx` — padronizar botões da linha
 
 ### Fora de escopo
 
-- Não troco paleta de cores (azul-marinho + acentos já está coerente com Apple dark).
-- Não mudo estrutura de rotas, lógica de queries ou n8n.
-- Não adiciono libs novas — `backdrop-blur` é nativo do Tailwind.
-- Não mexo em `/agenda` ainda; se ficar bom no dashboard + cadastros, replicamos depois.
-
-### Resultado esperado
-
-Visual coeso tipo macOS Sonoma / iOS 17: superfícies translúcidas com blur sobre o gradiente do body, hierarquia tipográfica clara, botões com mesma altura, cards de feedback respiráveis, dialog de horários organizado em grid com preview lateral.
+- Não vou refatorar a estrutura do dialog (grid, dnd-kit) — está funcional.
+- Não vou mexer no dashboard nem nas visões Semana/Mês da agenda — visualmente estão ok.
+- Não adiciono libs novas (uso só Tailwind + componentes existentes).
 
