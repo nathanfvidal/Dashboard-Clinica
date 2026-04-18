@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, defs } from "recharts";
 import { format, subDays } from "date-fns";
 
 interface Props {
@@ -18,34 +18,45 @@ export function ChartAgendamentos({ agendamentos }: Props) {
   });
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="text-base">Agendamentos por dia (últimos 14)</CardTitle>
+    <Card className="h-full border-border/60 bg-gradient-surface shadow-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Agendamentos por dia
+        </CardTitle>
+        <p className="text-xs text-muted-foreground/70">Últimos 14 dias</p>
       </CardHeader>
       <CardContent>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 12, left: -12, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="dia" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-              <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+            <AreaChart data={data} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorAgend" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+              <XAxis dataKey="dia" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
               <Tooltip
                 contentStyle={{
                   background: "hsl(var(--popover))",
                   border: "1px solid hsl(var(--border))",
-                  borderRadius: 8,
+                  borderRadius: 10,
                   color: "hsl(var(--popover-foreground))",
+                  boxShadow: "var(--shadow-elevated)",
                 }}
+                cursor={{ stroke: "hsl(var(--primary))", strokeWidth: 1, strokeDasharray: "4 4", opacity: 0.5 }}
               />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="total"
                 stroke="hsl(var(--primary))"
                 strokeWidth={2.5}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
+                fill="url(#colorAgend)"
+                activeDot={{ r: 5, fill: "hsl(var(--primary))", stroke: "hsl(var(--background))", strokeWidth: 2 }}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

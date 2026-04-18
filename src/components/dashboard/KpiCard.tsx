@@ -7,27 +7,79 @@ interface KpiCardProps {
   value: string | number;
   icon: LucideIcon;
   hint?: string;
-  accent?: "primary" | "emerald" | "amber" | "blue";
+  accent?: "primary" | "emerald" | "amber" | "violet" | "rose" | "cyan";
 }
 
-const accentMap = {
-  primary: "bg-primary/10 text-primary",
-  emerald: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-  amber: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-  blue: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+// Mapeamento de acentos — usa tokens HSL semânticos do design system
+const accentMap: Record<NonNullable<KpiCardProps["accent"]>, { bg: string; text: string; glow: string; ring: string }> = {
+  primary: {
+    bg: "bg-[hsl(var(--primary)/0.12)]",
+    text: "text-primary",
+    glow: "shadow-[0_0_24px_hsl(var(--primary)/0.35)]",
+    ring: "ring-[hsl(var(--primary)/0.25)]",
+  },
+  emerald: {
+    bg: "bg-[hsl(var(--accent-emerald)/0.12)]",
+    text: "text-[hsl(var(--accent-emerald))]",
+    glow: "shadow-[0_0_24px_hsl(var(--accent-emerald)/0.3)]",
+    ring: "ring-[hsl(var(--accent-emerald)/0.25)]",
+  },
+  amber: {
+    bg: "bg-[hsl(var(--accent-amber)/0.12)]",
+    text: "text-[hsl(var(--accent-amber))]",
+    glow: "shadow-[0_0_24px_hsl(var(--accent-amber)/0.3)]",
+    ring: "ring-[hsl(var(--accent-amber)/0.25)]",
+  },
+  violet: {
+    bg: "bg-[hsl(var(--accent-violet)/0.12)]",
+    text: "text-[hsl(var(--accent-violet))]",
+    glow: "shadow-[0_0_24px_hsl(var(--accent-violet)/0.3)]",
+    ring: "ring-[hsl(var(--accent-violet)/0.25)]",
+  },
+  rose: {
+    bg: "bg-[hsl(var(--accent-rose)/0.12)]",
+    text: "text-[hsl(var(--accent-rose))]",
+    glow: "shadow-[0_0_24px_hsl(var(--accent-rose)/0.3)]",
+    ring: "ring-[hsl(var(--accent-rose)/0.25)]",
+  },
+  cyan: {
+    bg: "bg-[hsl(var(--accent-cyan)/0.12)]",
+    text: "text-[hsl(var(--accent-cyan))]",
+    glow: "shadow-[0_0_24px_hsl(var(--accent-cyan)/0.3)]",
+    ring: "ring-[hsl(var(--accent-cyan)/0.25)]",
+  },
 };
 
-export function KpiCard({ label, value, icon: Icon, hint, accent = "primary" }: KpiCardProps) {
+// Aceita os valores antigos ("blue") como sinônimos para compatibilidade
+const normalizeAccent = (a?: string): NonNullable<KpiCardProps["accent"]> => {
+  if (a === "blue") return "primary";
+  if (a && a in accentMap) return a as NonNullable<KpiCardProps["accent"]>;
+  return "primary";
+};
+
+export function KpiCard({ label, value, icon: Icon, hint, accent }: KpiCardProps) {
+  const tone = accentMap[normalizeAccent(accent)];
+
   return (
-    <Card>
+    <Card className="group relative overflow-hidden border-border/60 bg-gradient-surface shadow-card transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:border-border hover:shadow-elevated">
+      {/* Glow sutil no topo do card */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <CardContent className="flex items-center gap-4 p-5">
-        <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", accentMap[accent])}>
+        <div
+          className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-xl ring-1 transition-all duration-300",
+            tone.bg,
+            tone.text,
+            tone.ring,
+            "group-hover:" + tone.glow,
+          )}
+        >
           <Icon className="h-6 w-6" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-          <p className="text-2xl font-semibold leading-tight">{value}</p>
-          {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className="text-2xl font-semibold leading-tight tracking-tight">{value}</p>
+          {hint && <p className="text-xs text-muted-foreground/80">{hint}</p>}
         </div>
       </CardContent>
     </Card>

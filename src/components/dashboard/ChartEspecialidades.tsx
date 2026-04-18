@@ -5,14 +5,14 @@ interface Props {
   agendamentos: Array<{ especialidade: string }>;
 }
 
+// Paleta vibrante via tokens do design system
 const CORES = [
   "hsl(var(--primary))",
-  "hsl(217 91% 60%)",
-  "hsl(142 71% 45%)",
-  "hsl(38 92% 50%)",
-  "hsl(280 70% 60%)",
-  "hsl(0 72% 60%)",
-  "hsl(173 58% 39%)",
+  "hsl(var(--accent-violet))",
+  "hsl(var(--accent-emerald))",
+  "hsl(var(--accent-amber))",
+  "hsl(var(--accent-rose))",
+  "hsl(var(--accent-cyan))",
 ];
 
 export function ChartEspecialidades({ agendamentos }: Props) {
@@ -27,9 +27,12 @@ export function ChartEspecialidades({ agendamentos }: Props) {
     .sort((a, b) => b.value - a.value);
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="text-base">Por especialidade</CardTitle>
+    <Card className="h-full border-border/60 bg-gradient-surface shadow-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Por especialidade
+        </CardTitle>
+        <p className="text-xs text-muted-foreground/70">Distribuição atual</p>
       </CardHeader>
       <CardContent>
         <div className="h-64">
@@ -44,9 +47,11 @@ export function ChartEspecialidades({ agendamentos }: Props) {
                   data={data}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius={45}
-                  outerRadius={85}
-                  paddingAngle={2}
+                  innerRadius={50}
+                  outerRadius={88}
+                  paddingAngle={3}
+                  stroke="hsl(var(--background))"
+                  strokeWidth={2}
                 >
                   {data.map((_, i) => (
                     <Cell key={i} fill={CORES[i % CORES.length]} />
@@ -56,11 +61,12 @@ export function ChartEspecialidades({ agendamentos }: Props) {
                   contentStyle={{
                     background: "hsl(var(--popover))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
+                    borderRadius: 10,
                     color: "hsl(var(--popover-foreground))",
+                    boxShadow: "var(--shadow-elevated)",
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }} iconType="circle" />
               </PieChart>
             </ResponsiveContainer>
           )}
