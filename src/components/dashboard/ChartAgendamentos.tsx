@@ -1,4 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from "@/components/ui/glass-card";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { format, subDays } from "date-fns";
 
@@ -18,14 +23,14 @@ export function ChartAgendamentos({ agendamentos }: Props) {
   });
 
   return (
-    <Card className="h-full border-border/60 bg-gradient-surface shadow-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+    <GlassCard className="h-full">
+      <GlassCardHeader className="pb-2">
+        <GlassCardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Agendamentos por dia
-        </CardTitle>
+        </GlassCardTitle>
         <p className="text-xs text-muted-foreground/70">Últimos 14 dias</p>
-      </CardHeader>
-      <CardContent>
+      </GlassCardHeader>
+      <GlassCardContent>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
@@ -59,7 +64,7 @@ export function ChartAgendamentos({ agendamentos }: Props) {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   );
 }
