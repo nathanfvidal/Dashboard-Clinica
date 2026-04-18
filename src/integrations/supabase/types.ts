@@ -88,6 +88,36 @@ export type Database = {
           },
         ]
       }
+      feedbacks: {
+        Row: {
+          agendamento_id: string | null
+          comentario: string | null
+          created_at: string
+          id: string
+          nota: number
+          paciente_nome: string | null
+          paciente_telefone: string
+        }
+        Insert: {
+          agendamento_id?: string | null
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          nota: number
+          paciente_nome?: string | null
+          paciente_telefone: string
+        }
+        Update: {
+          agendamento_id?: string | null
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          nota?: number
+          paciente_nome?: string | null
+          paciente_telefone?: string
+        }
+        Relationships: []
+      }
       pacientes: {
         Row: {
           created_at: string | null
