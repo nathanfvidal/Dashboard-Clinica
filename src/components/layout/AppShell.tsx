@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { Activity, CalendarDays, LayoutDashboard, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +10,8 @@ const navItems = [
 ];
 
 export default function AppShell() {
+  const location = useLocation();
+
   return (
     <div className="min-h-screen text-foreground">
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
@@ -31,7 +34,7 @@ export default function AppShell() {
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    "relative flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 ease-smooth",
+                    "relative flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200",
                     isActive
                       ? "bg-primary/15 text-primary"
                       : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
@@ -43,7 +46,11 @@ export default function AppShell() {
                     <item.icon className="h-4 w-4" />
                     <span className="hidden sm:inline">{item.label}</span>
                     {isActive && (
-                      <span className="pointer-events-none absolute inset-x-2 -bottom-[9px] h-0.5 rounded-full bg-gradient-primary" />
+                      <motion.span
+                        layoutId="nav-indicator"
+                        className="pointer-events-none absolute inset-x-2 -bottom-[9px] h-0.5 rounded-full bg-gradient-primary"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
                     )}
                   </>
                 )}
@@ -52,8 +59,18 @@ export default function AppShell() {
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 animate-fade-in">
-        <Outlet />
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

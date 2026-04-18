@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { CalendarCheck, Users, MessageSquare, Star } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ import { ListaFeedbacks } from "@/components/dashboard/ListaFeedbacks";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { STATUS_AGENDAMENTO } from "@/lib/status";
+import { staggerContainer, staggerItem } from "@/components/motion/PageTransition";
 
 const Index = () => {
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
@@ -135,18 +137,31 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Agendamentos hoje" value={agendHoje} icon={CalendarCheck} accent="primary" />
-        <KpiCard label="Pacientes cadastrados" value={pacientes.length} icon={Users} accent="cyan" />
-        <KpiCard label="Fila humana" value={filaHumana} icon={MessageSquare} accent="amber" />
-        <KpiCard
-          label="Feedback médio"
-          value={mediaFeedback}
-          icon={Star}
-          accent="emerald"
-          hint={`${feedbacks.length} avaliações`}
-        />
-      </div>
+      <motion.div
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div variants={staggerItem}>
+          <KpiCard label="Agendamentos hoje" value={agendHoje} icon={CalendarCheck} accent="primary" />
+        </motion.div>
+        <motion.div variants={staggerItem}>
+          <KpiCard label="Pacientes cadastrados" value={pacientes.length} icon={Users} accent="cyan" />
+        </motion.div>
+        <motion.div variants={staggerItem}>
+          <KpiCard label="Fila humana" value={filaHumana} icon={MessageSquare} accent="amber" />
+        </motion.div>
+        <motion.div variants={staggerItem}>
+          <KpiCard
+            label="Feedback médio"
+            value={mediaFeedback}
+            icon={Star}
+            accent="emerald"
+            hint={`${feedbacks.length} avaliações`}
+          />
+        </motion.div>
+      </motion.div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
