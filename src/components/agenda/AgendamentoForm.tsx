@@ -5,6 +5,8 @@ import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useEspecialidades } from "@/hooks/useEspecialidades";
+import { useMedicos } from "@/hooks/useMedicos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,8 +20,8 @@ import {
 import { STATUS_AGENDAMENTO } from "@/lib/status";
 
 const schema = z.object({
-  especialidade: z.string().min(2, "Informe a especialidade"),
-  medico: z.string().min(2, "Informe o médico"),
+  especialidade_id: z.string().min(1, "Selecione a especialidade"),
+  medico_id: z.string().min(1, "Selecione o médico"),
   data_consulta: z.string().min(1, "Informe a data"),
   horario: z.string().min(1, "Informe o horário"),
   paciente_telefone: z.string().min(8, "Telefone inválido"),
@@ -30,13 +32,18 @@ const schema = z.object({
 export type AgendamentoFormValues = z.infer<typeof schema>;
 
 interface Props {
-  initial?: Partial<AgendamentoFormValues> & { id?: string };
+  initial?: Partial<AgendamentoFormValues> & {
+    id?: string;
+    especialidade?: string;
+    medico?: string;
+  };
   onDone: () => void;
 }
 
 export function AgendamentoForm({ initial, onDone }: Props) {
   const queryClient = useQueryClient();
   const isEdit = Boolean(initial?.id);
+  const { data: especialidades } = useEspecialidades(true);
 
   const {
     register,
@@ -48,8 +55,8 @@ export function AgendamentoForm({ initial, onDone }: Props) {
   } = useForm<AgendamentoFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      especialidade: initial?.especialidade ?? "",
-      medico: initial?.medico ?? "",
+      especialidade_id: initial?.especialidade_id ?? "",
+      medico_id: initial?.medico_id ?? "",
       data_consulta: initial?.data_consulta ?? "",
       horario: initial?.horario?.slice(0, 5) ?? "",
       paciente_telefone: initial?.paciente_telefone ?? "",
@@ -58,10 +65,19 @@ export function AgendamentoForm({ initial, onDone }: Props) {
     },
   });
 
+  const especialidadeId = watch("especialidade_id");
+  const medicoId = watch("medico_id");
+  const status = watch("status");
+
+  const { data: medicos } = useMedicos({
+    apenasAtivos: true,
+    especialidadeId: especialidadeId || undefined,
+  });
+
   useEffect(() => {
     reset({
-      especialidade: initial?.especialidade ?? "",
-      medico: initial?.medico ?? "",
+      especialidade_id: initial?.especialidade_id ?? "",
+      medico_id: initial?.medico_id ?? "",
       data_consulta: initial?.data_consulta ?? "",
       horario: initial?.horario?.slice(0, 5) ?? "",
       paciente_telefone: initial?.paciente_telefone ?? "",
@@ -70,18 +86,31 @@ export function AgendamentoForm({ initial, onDone }: Props) {
     });
   }, [initial, reset]);
 
-  const status = watch("status");
-
   const mutation = useMutation({
     mutationFn: async (values: AgendamentoFormValues) => {
+      const especialidade = especialidades?.find((e) => e.id === values.especialidade_id);
+      const medico = medicos?.find((m) => m.id === values.medico_id);
+
+      const payload = {
+        especialidade_id: values.especialidade_id,
+        medico_id: values.medico_id,
+        especialidade: especialidade?.nome ?? "",
+        medico: medico?.nome ?? "",
+        data_consulta: values.data_consulta,
+        horario: values.horario,
+        paciente_telefone: values.paciente_telefone,
+        paciente_nome: values.paciente_nome,
+        status: values.status,
+      };
+
       if (isEdit && initial?.id) {
         const { error } = await supabase
           .from("agendamentos")
-          .update(values)
+          .update(payload)
           .eq("id", initial.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("agendamentos").insert(values);
+        const { error } = await supabase.from("agendamentos").insert(payload);
         if (error) throw error;
       }
     },
@@ -98,19 +127,59 @@ export function AgendamentoForm({ initial, onDone }: Props) {
     <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
-          <Label htmlFor="especialidade">Especialidade</Label>
-          <Input id="especialidade" {...register("especialidade")} />
-          {errors.especialidade && <p className="text-xs text-destructive">{errors.especialidade.message}</p>}
+          <Label>Especialidade</Label>
+          <Select
+            value={especialidadeId}
+            onValueChange={(v) => {
+              setValue("especialidade_id", v);
+              setValue("medico_id", "");
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              {especialidades?.map((e) => (
+                <SelectItem key={e.id} value={e.id}>
+                  {e.icone} {e.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.especialidade_id && (
+            <p className="text-xs text-destructive">{errors.especialidade_id.message}</p>
+          )}
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="medico">Médico</Label>
-          <Input id="medico" {...register("medico")} />
-          {errors.medico && <p className="text-xs text-destructive">{errors.medico.message}</p>}
+          <Label>Médico</Label>
+          <Select
+            value={medicoId}
+            onValueChange={(v) => setValue("medico_id", v)}
+            disabled={!especialidadeId}
+          >
+            <SelectTrigger>
+              <SelectValue
+                placeholder={especialidadeId ? "Selecione..." : "Escolha a especialidade"}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {medicos?.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.medico_id && (
+            <p className="text-xs text-destructive">{errors.medico_id.message}</p>
+          )}
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="data_consulta">Data</Label>
           <Input id="data_consulta" type="date" {...register("data_consulta")} />
-          {errors.data_consulta && <p className="text-xs text-destructive">{errors.data_consulta.message}</p>}
+          {errors.data_consulta && (
+            <p className="text-xs text-destructive">{errors.data_consulta.message}</p>
+          )}
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="horario">Horário</Label>

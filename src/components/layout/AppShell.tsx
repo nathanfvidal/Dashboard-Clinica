@@ -1,10 +1,11 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Activity, CalendarDays, LayoutDashboard } from "lucide-react";
+import { Activity, CalendarDays, LayoutDashboard, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, end: false },
+  { to: "/cadastros", label: "Cadastros", icon: Settings2, end: false },
 ];
 
 export default function AppShell() {

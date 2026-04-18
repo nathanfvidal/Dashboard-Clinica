@@ -19,9 +19,11 @@ export type Database = {
           created_at: string | null
           data_consulta: string
           especialidade: string
+          especialidade_id: string | null
           horario: string
           id: string
           medico: string
+          medico_id: string | null
           paciente_nome: string | null
           paciente_telefone: string
           status: string | null
@@ -30,9 +32,11 @@ export type Database = {
           created_at?: string | null
           data_consulta: string
           especialidade: string
+          especialidade_id?: string | null
           horario: string
           id?: string
           medico: string
+          medico_id?: string | null
           paciente_nome?: string | null
           paciente_telefone: string
           status?: string | null
@@ -41,14 +45,31 @@ export type Database = {
           created_at?: string | null
           data_consulta?: string
           especialidade?: string
+          especialidade_id?: string | null
           horario?: string
           id?: string
           medico?: string
+          medico_id?: string | null
           paciente_nome?: string | null
           paciente_telefone?: string
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_especialidade_id_fkey"
+            columns: ["especialidade_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_medico_id_fkey"
+            columns: ["medico_id"]
+            isOneToOne: false
+            referencedRelation: "medicos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       atendimentos_humanos: {
         Row: {
@@ -88,6 +109,36 @@ export type Database = {
           },
         ]
       }
+      especialidades: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feedbacks: {
         Row: {
           agendamento_id: string | null
@@ -117,6 +168,91 @@ export type Database = {
           paciente_telefone?: string
         }
         Relationships: []
+      }
+      horarios_medico: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          dia_semana: number
+          duracao_consulta_min: number
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          medico_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          dia_semana: number
+          duracao_consulta_min?: number
+          hora_fim: string
+          hora_inicio: string
+          id?: string
+          medico_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          dia_semana?: number
+          duracao_consulta_min?: number
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          medico_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horarios_medico_medico_id_fkey"
+            columns: ["medico_id"]
+            isOneToOne: false
+            referencedRelation: "medicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medicos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          crm: string | null
+          especialidade_id: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          crm?: string | null
+          especialidade_id?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          crm?: string | null
+          especialidade_id?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicos_especialidade_id_fkey"
+            columns: ["especialidade_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pacientes: {
         Row: {
@@ -188,7 +324,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      gerar_agenda_mes: {
+        Args: { p_data_fim: string; p_data_inicio: string; p_medico_id: string }
+        Returns: number
+      }
+      gerar_slots_disponiveis: {
+        Args: { p_data_fim: string; p_data_inicio: string; p_medico_id: string }
+        Returns: {
+          data_consulta: string
+          horario: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

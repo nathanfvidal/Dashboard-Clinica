@@ -39,6 +39,8 @@ interface Agendamento {
   id: string;
   especialidade: string;
   medico: string;
+  especialidade_id: string | null;
+  medico_id: string | null;
   data_consulta: string;
   horario: string;
   paciente_telefone: string;
