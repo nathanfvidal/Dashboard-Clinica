@@ -1,8 +1,11 @@
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { statusBadgeClass } from "@/lib/status";
@@ -23,6 +26,8 @@ const STATUS_HUMANO = new Set(["humano", "atendente", "pausado"]);
 
 export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[] }) {
   const queryClient = useQueryClient();
+
+  const [soPausados, setSoPausados] = useState(false);
 
   // Busca o status_sessao dos pacientes desta lista para sabermos se o bot está ativo
   const telefones = atendimentos.map((a) => a.paciente_telefone);
