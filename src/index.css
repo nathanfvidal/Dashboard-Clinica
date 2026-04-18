@@ -229,4 +229,62 @@
       0 22px 56px hsl(0 0% 0% / 0.45),
       0 0 0 1px hsl(217 91% 60% / 0.12);
   }
+
+  /* Spotlight — efeito radial que segue o cursor (estilo Vercel/Linear).
+     As variáveis --spotlight-x / --spotlight-y são atualizadas pelo JS via
+     onMouseMove no GlassCard. O ::before é o brilho preenchido suave; o ::after
+     é a borda iluminada que destaca o contorno do card sob o cursor. */
+  .glass-spotlight {
+    position: relative;
+    isolation: isolate;
+    --spotlight-x: 50%;
+    --spotlight-y: 50%;
+    --spotlight-color: 217 91% 65%;
+    --spotlight-size: 320px;
+  }
+  .glass-spotlight::before,
+  .glass-spotlight::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .glass-spotlight::before {
+    background: radial-gradient(
+      var(--spotlight-size) circle at var(--spotlight-x) var(--spotlight-y),
+      hsl(var(--spotlight-color) / 0.18),
+      transparent 60%
+    );
+    z-index: 0;
+  }
+  .glass-spotlight::after {
+    /* Borda iluminada — usa mask para mostrar só a borda */
+    padding: 1px;
+    background: radial-gradient(
+      var(--spotlight-size) circle at var(--spotlight-x) var(--spotlight-y),
+      hsl(var(--spotlight-color) / 0.55),
+      transparent 55%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    z-index: 1;
+  }
+  /* Apenas em dispositivos com hover real (mouse) — pula touch */
+  @media (hover: hover) {
+    .glass-spotlight:hover::before,
+    .glass-spotlight:hover::after {
+      opacity: 1;
+    }
+  }
+  /* Garante que o conteúdo do card fique acima dos pseudo-elementos */
+  .glass-spotlight > * {
+    position: relative;
+    z-index: 2;
+  }
 }

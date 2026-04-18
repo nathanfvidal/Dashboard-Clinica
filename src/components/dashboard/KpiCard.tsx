@@ -61,7 +61,7 @@ export function KpiCard({ label, value, icon: Icon, hint, accent }: KpiCardProps
   const tone = accentMap[normalizeAccent(accent)];
 
   return (
-    <GlassCard hover className="group relative h-full overflow-hidden">
+    <GlassCard hover spotlight className="group relative h-full overflow-hidden">
       {/* Brilho sutil no topo do card ao passar o mouse */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <div className="flex h-full items-center gap-4 p-5">

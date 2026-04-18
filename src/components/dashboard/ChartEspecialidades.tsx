@@ -32,7 +32,7 @@ export function ChartEspecialidades({ agendamentos }: Props) {
     .sort((a, b) => b.value - a.value);
 
   return (
-    <GlassCard className="h-full">
+    <GlassCard spotlight className="h-full">
       <GlassCardHeader className="pb-2">
         <GlassCardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Por especialidade

@@ -23,7 +23,7 @@ export function ChartAgendamentos({ agendamentos }: Props) {
   });
 
   return (
-    <GlassCard className="h-full">
+    <GlassCard spotlight className="h-full">
       <GlassCardHeader className="pb-2">
         <GlassCardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Agendamentos por dia

@@ -11,10 +11,13 @@ import { cn } from "@/lib/utils";
  *  - subtle   → glass-subtle (blur 12px, leve — bom pra rows internas)
  *
  * hover: aplica lift sutil + glow primary na borda.
+ * spotlight: efeito radial que segue o cursor (estilo Vercel/Linear). Desativa em
+ *            telas de toque automaticamente via media query (hover: hover).
  */
 export interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: "default" | "panel" | "subtle";
   hover?: boolean;
+  spotlight?: boolean;
   asChild?: boolean;
 }
 
@@ -25,18 +28,51 @@ const variantClass = {
 } as const;
 
 export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
-  ({ className, variant = "default", hover = false, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        variantClass[variant],
-        hover && "glass-hover",
-        "text-card-foreground",
-        className,
-      )}
-      {...props}
-    />
-  ),
+  ({ className, variant = "default", hover = false, spotlight = false, children, onMouseMove, ...props }, ref) => {
+    // Atualiza variáveis CSS --x / --y com a posição do mouse relativa ao card.
+    // Usa requestAnimationFrame para evitar sobrecarga em movimentos rápidos.
+    const rafRef = React.useRef<number | null>(null);
+    const handleMouseMove = React.useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        if (spotlight) {
+          const target = e.currentTarget;
+          const rect = target.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          if (rafRef.current) cancelAnimationFrame(rafRef.current);
+          rafRef.current = requestAnimationFrame(() => {
+            target.style.setProperty("--spotlight-x", `${x}px`);
+            target.style.setProperty("--spotlight-y", `${y}px`);
+          });
+        }
+        onMouseMove?.(e);
+      },
+      [spotlight, onMouseMove],
+    );
+
+    React.useEffect(() => {
+      return () => {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      };
+    }, []);
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          variantClass[variant],
+          hover && "glass-hover",
+          spotlight && "glass-spotlight",
+          "text-card-foreground",
+          className,
+        )}
+        onMouseMove={handleMouseMove}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  },
 );
 GlassCard.displayName = "GlassCard";
 
