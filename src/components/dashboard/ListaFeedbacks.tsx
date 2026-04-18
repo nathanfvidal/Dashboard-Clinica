@@ -49,7 +49,7 @@ function Estrelas({ nota }: { nota: number }) {
 
 export function ListaFeedbacks({ feedbacks }: { feedbacks: Feedback[] }) {
   return (
-    <GlassCard>
+    <GlassCard spotlight>
       <GlassCardHeader>
         <GlassCardTitle>Últimos feedbacks</GlassCardTitle>
       </GlassCardHeader>

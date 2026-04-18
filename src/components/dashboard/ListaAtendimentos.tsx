@@ -103,7 +103,7 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
   );
 
   return (
-    <GlassCard>
+    <GlassCard spotlight>
       <GlassCardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
         <div className="flex items-center gap-2">
           <GlassCardTitle>Atendimentos humanos</GlassCardTitle>
