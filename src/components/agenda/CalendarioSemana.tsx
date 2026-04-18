@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, eachDayOfInterval, endOfWeek, format, isSameDay, isToday, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
@@ -54,6 +54,9 @@ export function CalendarioSemana({
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [alvo, setAlvo] = useState<{ data: string; slot: number } | null>(null);
 
+  // Container scrollável da grade — usado para rolar até a hora atual
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
   // Relógio atualizado a cada minuto para a linha "agora"
   const [agora, setAgora] = useState<Date>(() => new Date());
   useEffect(() => {
@@ -75,6 +78,22 @@ export function CalendarioSemana({
     const fim = endOfWeek(semanaRef, { weekStartsOn: 0 });
     return eachDayOfInterval({ start: inicio, end: fim });
   }, [semanaRef]);
+
+  // Rola até a hora atual quando a semana exibida contém o dia de hoje
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const semanaTemHoje = dias.some((d) => isSameDay(d, new Date()));
+    if (!semanaTemHoje) return;
+    const minutosDesdeInicio =
+      (new Date().getHours() - HORA_INICIO) * 60 + new Date().getMinutes();
+    const totalMin = (HORA_FIM - HORA_INICIO) * 60;
+    if (minutosDesdeInicio < 0 || minutosDesdeInicio > totalMin) return;
+    const topAgora = (minutosDesdeInicio / 60) * PX_POR_HORA;
+    // Centraliza a linha na viewport do scroll, com pequena folga superior
+    const alvoScroll = Math.max(0, topAgora - container.clientHeight / 2);
+    container.scrollTo({ top: alvoScroll, behavior: "smooth" });
+  }, [dias]);
 
   const horas = useMemo(() => {
     const arr: number[] = [];
@@ -170,7 +189,7 @@ export function CalendarioSemana({
         </p>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-border/40">
+      <div ref={scrollRef} className="max-h-[640px] overflow-y-auto overflow-x-hidden rounded-xl border border-border/40">
         {/* Cabeçalho de dias */}
         <div className="grid grid-cols-[60px_repeat(7,minmax(0,1fr))] border-b border-border/40 bg-background/60">
           <div />
