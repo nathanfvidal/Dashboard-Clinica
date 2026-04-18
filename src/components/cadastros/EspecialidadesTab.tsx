@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ICONES_ESPECIALIDADE, getIconeEspecialidade } from "@/lib/icones-especialidade";
 import {
   Table,
   TableBody,
@@ -46,12 +48,12 @@ export function EspecialidadesTab() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { nome: "", descricao: "", icone: "🩺", ativo: true },
+    defaultValues: { nome: "", descricao: "", icone: "stethoscope", ativo: true },
   });
 
   const abrirNovo = () => {
     setEditing(null);
-    form.reset({ nome: "", descricao: "", icone: "🩺", ativo: true });
+    form.reset({ nome: "", descricao: "", icone: "stethoscope", ativo: true });
     setOpen(true);
   };
 
@@ -60,7 +62,7 @@ export function EspecialidadesTab() {
     form.reset({
       nome: e.nome,
       descricao: e.descricao ?? "",
-      icone: e.icone ?? "🩺",
+      icone: e.icone ?? "stethoscope",
       ativo: e.ativo,
     });
     setOpen(true);
@@ -133,8 +135,25 @@ export function EspecialidadesTab() {
                 )}
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="esp-icone">Ícone (emoji)</Label>
-                <Input id="esp-icone" {...form.register("icone")} />
+                <Label htmlFor="esp-icone">Ícone</Label>
+                <Select
+                  value={form.watch("icone") || "stethoscope"}
+                  onValueChange={(v) => form.setValue("icone", v)}
+                >
+                  <SelectTrigger id="esp-icone">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ICONES_ESPECIALIDADE.map(({ value, label, Icon }) => (
+                      <SelectItem key={value} value={value}>
+                        <span className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          {label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="esp-desc">Descrição</Label>
@@ -187,9 +206,15 @@ export function EspecialidadesTab() {
                 </TableCell>
               </TableRow>
             )}
-            {especialidades?.map((e) => (
+            {especialidades?.map((e) => {
+              const Icon = getIconeEspecialidade(e.icone);
+              return (
               <TableRow key={e.id}>
-                <TableCell className="text-2xl">{e.icone ?? "🩺"}</TableCell>
+                <TableCell>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                </TableCell>
                 <TableCell className="font-medium">{e.nome}</TableCell>
                 <TableCell className="text-muted-foreground">{e.descricao ?? "—"}</TableCell>
                 <TableCell>
@@ -212,7 +237,8 @@ export function EspecialidadesTab() {
                   </Button>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </div>
