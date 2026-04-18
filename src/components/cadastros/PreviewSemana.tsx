@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { AlertTriangle } from "lucide-react";
 
 interface LinhaHorario {
   dia_semana?: number;
@@ -40,26 +41,72 @@ function gerarSlots(linha: LinhaHorario): string[] {
   return slots;
 }
 
+// Detecta intervalos sobrepostos dentro do mesmo dia
+function detectarConflitos(linhasDoDia: LinhaHorario[]): Set<string> {
+  const conflitantes = new Set<string>(); // armazena slots em conflito ("HH:MM")
+  const intervalos = linhasDoDia
+    .map((l) => ({ ini: toMin(l.hora_inicio), fim: toMin(l.hora_fim) }))
+    .filter((r) => r.fim > r.ini);
+
+  for (let i = 0; i < intervalos.length; i++) {
+    for (let j = i + 1; j < intervalos.length; j++) {
+      const a = intervalos[i];
+      const b = intervalos[j];
+      const overlapIni = Math.max(a.ini, b.ini);
+      const overlapFim = Math.min(a.fim, b.fim);
+      if (overlapFim > overlapIni) {
+        // Marca todos os slots gerados por ambas as linhas que caiam na faixa de overlap
+        for (const linha of [linhasDoDia[i], linhasDoDia[j]]) {
+          for (const slot of gerarSlots(linha)) {
+            const t = toMin(slot);
+            const dur = Number(linha.duracao_consulta_min) || 30;
+            if (t < overlapFim && t + dur > overlapIni) conflitantes.add(slot);
+          }
+        }
+      }
+    }
+  }
+  return conflitantes;
+}
+
 export function PreviewSemana({ linhas }: Props) {
-  // Agrupa slots por dia da semana
-  const slotsPorDia = useMemo(() => {
-    const mapa = new Map<number, string[]>();
-    for (let i = 0; i < 7; i++) mapa.set(i, []);
+  // Agrupa slots e conflitos por dia da semana
+  const dadosPorDia = useMemo(() => {
+    const mapa = new Map<
+      number,
+      { slots: string[]; conflitos: Set<string> }
+    >();
+    for (let i = 0; i < 7; i++) mapa.set(i, { slots: [], conflitos: new Set() });
+
+    // Agrupa linhas por dia
+    const linhasPorDia = new Map<number, LinhaHorario[]>();
     for (const linha of linhas) {
       const dia = Number(linha.dia_semana ?? -1);
       if (dia < 0 || dia > 6) continue;
-      const novos = gerarSlots(linha);
-      const atuais = mapa.get(dia) ?? [];
-      // Mescla evitando duplicados, mantendo ordem
-      const set = new Set([...atuais, ...novos]);
-      mapa.set(dia, Array.from(set).sort());
+      if (!linhasPorDia.has(dia)) linhasPorDia.set(dia, []);
+      linhasPorDia.get(dia)!.push(linha);
+    }
+
+    for (const [dia, linhasDoDia] of linhasPorDia) {
+      const conflitos = detectarConflitos(linhasDoDia);
+      const todosSlots = new Set<string>();
+      for (const l of linhasDoDia) for (const s of gerarSlots(l)) todosSlots.add(s);
+      mapa.set(dia, {
+        slots: Array.from(todosSlots).sort(),
+        conflitos,
+      });
     }
     return mapa;
   }, [linhas]);
 
   const totalSlots = useMemo(
-    () => Array.from(slotsPorDia.values()).reduce((s, arr) => s + arr.length, 0),
-    [slotsPorDia],
+    () => Array.from(dadosPorDia.values()).reduce((s, d) => s + d.slots.length, 0),
+    [dadosPorDia],
+  );
+
+  const totalConflitos = useMemo(
+    () => Array.from(dadosPorDia.values()).reduce((s, d) => s + d.conflitos.size, 0),
+    [dadosPorDia],
   );
 
   return (
@@ -73,15 +120,25 @@ export function PreviewSemana({ linhas }: Props) {
             Slots gerados a cada intervalo configurado
           </p>
         </div>
-        <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">
-          {totalSlots} {totalSlots === 1 ? "slot" : "slots"} / semana
-        </span>
+        <div className="flex items-center gap-2">
+          {totalConflitos > 0 && (
+            <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/30">
+              <AlertTriangle className="h-3 w-3" />
+              {totalConflitos} {totalConflitos === 1 ? "conflito" : "conflitos"}
+            </span>
+          )}
+          <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">
+            {totalSlots} {totalSlots === 1 ? "slot" : "slots"} / semana
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 gap-2">
         {DIAS_CURTOS.map((nome, i) => {
-          const slots = slotsPorDia.get(i) ?? [];
+          const dados = dadosPorDia.get(i) ?? { slots: [], conflitos: new Set<string>() };
+          const { slots, conflitos } = dados;
           const vazio = slots.length === 0;
+          const temConflito = conflitos.size > 0;
           return (
             <div
               key={i}
@@ -89,40 +146,73 @@ export function PreviewSemana({ linhas }: Props) {
                 "flex flex-col rounded-md border p-2 transition-colors " +
                 (vazio
                   ? "border-dashed border-border/50 bg-muted/30"
-                  : "border-border/70 bg-card/50")
+                  : temConflito
+                    ? "border-destructive/40 bg-destructive/5"
+                    : "border-border/70 bg-card/50")
               }
             >
               <div className="mb-2 flex items-center justify-between">
                 <span
                   className={
                     "text-[10px] font-semibold tracking-wider " +
-                    (vazio ? "text-muted-foreground/60" : "text-primary")
+                    (vazio
+                      ? "text-muted-foreground/60"
+                      : temConflito
+                        ? "text-destructive"
+                        : "text-primary")
                   }
                 >
                   {nome}
                 </span>
                 {!vazio && (
-                  <span className="text-[10px] text-muted-foreground">{slots.length}</span>
+                  <span className="flex items-center gap-1">
+                    {temConflito && (
+                      <AlertTriangle
+                        className="h-3 w-3 text-destructive"
+                        aria-label="Conflitos detectados"
+                      />
+                    )}
+                    <span className="text-[10px] text-muted-foreground">
+                      {slots.length}
+                    </span>
+                  </span>
                 )}
               </div>
               {vazio ? (
                 <span className="text-center text-[10px] text-muted-foreground/50">—</span>
               ) : (
                 <div className="flex max-h-40 flex-col gap-1 overflow-auto pr-0.5">
-                  {slots.map((s) => (
-                    <span
-                      key={s}
-                      className="rounded bg-primary/10 px-1.5 py-0.5 text-center text-[10px] font-medium tabular-nums text-primary ring-1 ring-inset ring-primary/15"
-                    >
-                      {s}
-                    </span>
-                  ))}
+                  {slots.map((s) => {
+                    const conflito = conflitos.has(s);
+                    return (
+                      <span
+                        key={s}
+                        title={conflito ? "Sobreposição com outra linha" : undefined}
+                        className={
+                          "rounded px-1.5 py-0.5 text-center text-[10px] font-medium tabular-nums ring-1 ring-inset " +
+                          (conflito
+                            ? "bg-destructive/15 text-destructive ring-destructive/40"
+                            : "bg-primary/10 text-primary ring-primary/15")
+                        }
+                      >
+                        {s}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>
           );
         })}
       </div>
+
+      {totalConflitos > 0 && (
+        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-destructive">
+          <AlertTriangle className="h-3 w-3" />
+          Há horários sobrepostos no mesmo dia. Ajuste as linhas em conflito antes de
+          salvar.
+        </p>
+      )}
     </div>
   );
 }
