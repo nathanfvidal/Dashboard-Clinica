@@ -216,6 +216,7 @@ export default function Agenda() {
         </GlassCardContent>
       </GlassCard>
 
+      {visao === "tabela" && (
       <GlassCard>
         <GlassCardContent className="p-0">
           <Table>
