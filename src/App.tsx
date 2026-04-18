@@ -8,6 +8,7 @@ import Index from "./pages/Index.tsx";
 import Agenda from "./pages/Agenda.tsx";
 import Cadastros from "./pages/Cadastros.tsx";
 import Atendimentos from "./pages/Atendimentos.tsx";
+import Solicitacoes from "./pages/Solicitacoes.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
