@@ -226,14 +226,27 @@ export function CalendarioSemana({
                   <div key={h} className="h-14 border-b border-border/30" />
                 ))}
 
-                {/* Drop zones de 30 em 30 min — sobrepostas, invisíveis até hover durante drag */}
-                {onMoverAgendamento &&
-                  slotsDrop.map((slot) => {
-                    const ativo =
-                      arrastando &&
-                      alvo?.data === chave &&
-                      alvo?.slot === slot;
-                    return (
+                {/* Linha indicadora da hora atual — só renderiza no dia de hoje e dentro da faixa visível */}
+                {(() => {
+                  if (!isSameDay(d, agora)) return null;
+                  const minutosDesdeInicio =
+                    (agora.getHours() - HORA_INICIO) * 60 + agora.getMinutes();
+                  const totalMin = (HORA_FIM - HORA_INICIO) * 60;
+                  if (minutosDesdeInicio < 0 || minutosDesdeInicio > totalMin) return null;
+                  const topAgora = (minutosDesdeInicio / 60) * PX_POR_HORA;
+                  return (
+                    <div
+                      className="pointer-events-none absolute inset-x-0 z-30 flex items-center"
+                      style={{ top: `${topAgora}px` }}
+                      aria-label={`Hora atual ${format(agora, "HH:mm")}`}
+                    >
+                      <span className="-ml-1 h-2 w-2 rounded-full bg-destructive shadow-[0_0_0_3px_hsl(var(--destructive)/0.2)]" />
+                      <span className="h-px flex-1 bg-destructive" />
+                    </div>
+                  );
+                })()}
+
+
                       <div
                         key={slot}
                         onDragOver={(e) => {
