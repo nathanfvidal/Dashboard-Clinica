@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
@@ -61,10 +61,10 @@ export function KpiCard({ label, value, icon: Icon, hint, accent }: KpiCardProps
   const tone = accentMap[normalizeAccent(accent)];
 
   return (
-    <Card className="group relative overflow-hidden border-border/60 bg-gradient-surface shadow-card transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:border-border hover:shadow-elevated">
+    <GlassCard hover className="group relative overflow-hidden">
       {/* Glow sutil no topo do card */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <CardContent className="flex items-center gap-4 p-5">
+      <div className="flex items-center gap-4 p-5">
         <div
           className={cn(
             "flex h-12 w-12 items-center justify-center rounded-xl ring-1 transition-all duration-300",
@@ -78,10 +78,10 @@ export function KpiCard({ label, value, icon: Icon, hint, accent }: KpiCardProps
         </div>
         <div className="min-w-0">
           <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-          <p className="text-2xl font-semibold leading-tight tracking-tight">{value}</p>
+          <p className="text-3xl font-semibold leading-tight tracking-tight">{value}</p>
           {hint && <p className="text-xs text-muted-foreground/80">{hint}</p>}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </GlassCard>
   );
 }
