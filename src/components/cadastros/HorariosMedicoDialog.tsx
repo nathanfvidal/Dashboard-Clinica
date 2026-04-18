@@ -146,11 +146,36 @@ export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
 
   const remover = (key: string) => setLinhas((l) => l.filter((x) => x._key !== key));
 
+  const duplicar = (key: string) =>
+    setLinhas((l) => {
+      const idx = l.findIndex((x) => x._key === key);
+      if (idx === -1) return l;
+      const copia = { ...l[idx], _key: crypto.randomUUID(), id: undefined };
+      return [...l.slice(0, idx + 1), copia, ...l.slice(idx + 1)];
+    });
+
   const aplicarTemplate = () =>
     setLinhas(TEMPLATE_PADRAO.map((t) => ({ ...t, _key: crypto.randomUUID() })));
 
   const atualizar = (key: string, campo: keyof Horario, valor: string | number) =>
     setLinhas((l) => l.map((x) => (x._key === key ? { ...x, [campo]: valor } : x)));
+
+  // Sensores do dnd-kit: pointer com pequena distância para não atrapalhar cliques
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setLinhas((l) => {
+      const oldIndex = l.findIndex((x) => x._key === active.id);
+      const newIndex = l.findIndex((x) => x._key === over.id);
+      if (oldIndex === -1 || newIndex === -1) return l;
+      return arrayMove(l, oldIndex, newIndex);
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
