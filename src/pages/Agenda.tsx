@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { CalendarDays, CheckCircle2, LayoutGrid, List, Pencil, Plus, XCircle } from "lucide-react";
@@ -60,8 +60,17 @@ export default function Agenda() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [openNovo, setOpenNovo] = useState(false);
   const [editando, setEditando] = useState<Agendamento | null>(null);
-  const [visao, setVisao] = useState<"tabela" | "semana" | "mes">("tabela");
+  const [visao, setVisao] = useState<"tabela" | "semana" | "mes">(() => {
+    if (typeof window === "undefined") return "tabela";
+    const salvo = localStorage.getItem("agenda:visao");
+    return salvo === "semana" || salvo === "mes" ? salvo : "tabela";
+  });
   const [refData, setRefData] = useState<Date>(new Date());
+
+  // Persiste a visão escolhida pra retomar na próxima visita
+  useEffect(() => {
+    localStorage.setItem("agenda:visao", visao);
+  }, [visao]);
 
   useRealtimeTable("agendamentos", ["agendamentos"]);
 
