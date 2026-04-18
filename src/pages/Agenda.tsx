@@ -368,6 +368,9 @@ export default function Agenda() {
                 const ag = agendamentos.find((a) => a.id === id);
                 if (ag) setEditando(ag);
               }}
+              onMoverAgendamento={(id, data_consulta, horario) =>
+                remarcar.mutate({ id, data_consulta, horario })
+              }
             />
           </GlassCardContent>
         </GlassCard>
