@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { STATUS_AGENDAMENTO } from "@/lib/status";
+import { getIconeEspecialidade } from "@/lib/icones-especialidade";
 
 const schema = z.object({
   especialidade_id: z.string().min(1, "Selecione a especialidade"),
@@ -141,11 +142,17 @@ export function AgendamentoForm({ initial, onDone }: Props) {
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
             <SelectContent>
-              {especialidades?.map((e) => (
-                <SelectItem key={e.id} value={e.id}>
-                  {e.icone} {e.nome}
-                </SelectItem>
-              ))}
+              {especialidades?.map((e) => {
+                const IconeEsp = getIconeEspecialidade(e.icone);
+                return (
+                  <SelectItem key={e.id} value={e.id}>
+                    <span className="inline-flex items-center gap-2">
+                      <IconeEsp className="h-3.5 w-3.5" />
+                      {e.nome}
+                    </span>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           {errors.especialidade_id && (
