@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,6 +64,7 @@ export function MedicosTab() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Medico | null>(null);
   const [horariosMedico, setHorariosMedico] = useState<Medico | null>(null);
+  const [removendo, setRemovendo] = useState<Medico | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -114,6 +116,7 @@ export function MedicosTab() {
     onSuccess: () => {
       toast({ title: "Médico removido" });
       queryClient.invalidateQueries({ queryKey: ["medicos"] });
+      setRemovendo(null);
     },
     onError: (e: Error) =>
       toast({ title: "Erro ao remover", description: e.message, variant: "destructive" }),
@@ -292,9 +295,7 @@ export function MedicosTab() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => {
-                          if (confirm(`Remover ${m.nome}?`)) remover.mutate(m.id);
-                        }}
+                        onClick={() => setRemovendo(m)}
                         aria-label="Remover médico"
                         title="Remover"
                       >
@@ -336,6 +337,25 @@ export function MedicosTab() {
         medico={horariosMedico}
         open={!!horariosMedico}
         onOpenChange={(v) => !v && setHorariosMedico(null)}
+      />
+
+      <ConfirmDialog
+        open={!!removendo}
+        onOpenChange={(o) => !o && setRemovendo(null)}
+        title="Remover médico"
+        description={
+          removendo && (
+            <>
+              Tem certeza que deseja remover{" "}
+              <span className="font-semibold text-foreground">{removendo.nome}</span>?
+              Esta ação não pode ser desfeita e pode afetar agendamentos vinculados.
+            </>
+          )
+        }
+        confirmLabel="Remover"
+        pendingLabel="Removendo..."
+        pending={remover.isPending}
+        onConfirm={() => removendo && remover.mutate(removendo.id)}
       />
     </div>
   );
