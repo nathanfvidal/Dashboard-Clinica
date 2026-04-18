@@ -8,6 +8,7 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, end: false },
   { to: "/atendimentos", label: "Atendimentos", icon: Headphones, end: false },
+  { to: "/solicitacoes", label: "Solicitações", icon: ClipboardList, end: false },
   { to: "/cadastros", label: "Cadastros", icon: Settings2, end: false },
 ];
 
