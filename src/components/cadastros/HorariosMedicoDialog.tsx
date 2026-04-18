@@ -197,71 +197,35 @@ export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
           </Button>
         </div>
 
-        <div className="max-h-[50vh] space-y-2 overflow-auto pr-1">
-          {linhas.length === 0 && (
-            <p className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              Nenhum horário definido. Adicione manualmente ou aplique o template.
-            </p>
-          )}
-          {linhas.map((l) => (
-            <div
-              key={l._key}
-              className="grid grid-cols-12 items-end gap-2 rounded-md border border-border p-3"
-            >
-              <div className="col-span-4">
-                <Label className="text-xs">Dia</Label>
-                <Select
-                  value={String(l.dia_semana ?? 1)}
-                  onValueChange={(v) => atualizar(l._key, "dia_semana", Number(v))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DIAS.map((d, i) => (
-                      <SelectItem key={i} value={String(i)}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-3">
-                <Label className="text-xs">Início</Label>
-                <Input
-                  type="time"
-                  value={l.hora_inicio ?? ""}
-                  onChange={(e) => atualizar(l._key, "hora_inicio", e.target.value)}
-                />
-              </div>
-              <div className="col-span-3">
-                <Label className="text-xs">Fim</Label>
-                <Input
-                  type="time"
-                  value={l.hora_fim ?? ""}
-                  onChange={(e) => atualizar(l._key, "hora_fim", e.target.value)}
-                />
-              </div>
-              <div className="col-span-1">
-                <Label className="text-xs">Min</Label>
-                <Input
-                  type="number"
-                  min={5}
-                  step={5}
-                  value={l.duracao_consulta_min ?? 30}
-                  onChange={(e) =>
-                    atualizar(l._key, "duracao_consulta_min", Number(e.target.value))
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext
+            items={linhas.map((l) => l._key)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="max-h-[50vh] space-y-2 overflow-auto pr-1">
+              {linhas.length === 0 && (
+                <p className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  Nenhum horário definido. Adicione manualmente ou aplique o template.
+                </p>
+              )}
+              {linhas.map((l) => (
+                <LinhaHorarioSortable
+                  key={l._key}
+                  id={l._key}
+                  dia_semana={l.dia_semana}
+                  hora_inicio={l.hora_inicio}
+                  hora_fim={l.hora_fim}
+                  duracao_consulta_min={l.duracao_consulta_min}
+                  onChange={(campo, valor) =>
+                    atualizar(l._key, campo as keyof Horario, valor)
                   }
+                  onRemove={() => remover(l._key)}
+                  onDuplicate={() => duplicar(l._key)}
                 />
-              </div>
-              <div className="col-span-1 flex justify-end">
-                <Button variant="ghost" size="icon" onClick={() => remover(l._key)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
 
         <PreviewSemana linhas={linhas} />
 
