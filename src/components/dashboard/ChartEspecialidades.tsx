@@ -1,4 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from "@/components/ui/glass-card";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
 interface Props {
@@ -27,14 +32,14 @@ export function ChartEspecialidades({ agendamentos }: Props) {
     .sort((a, b) => b.value - a.value);
 
   return (
-    <Card className="h-full border-border/60 bg-gradient-surface shadow-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+    <GlassCard className="h-full">
+      <GlassCardHeader className="pb-2">
+        <GlassCardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Por especialidade
-        </CardTitle>
+        </GlassCardTitle>
         <p className="text-xs text-muted-foreground/70">Distribuição atual</p>
-      </CardHeader>
-      <CardContent>
+      </GlassCardHeader>
+      <GlassCardContent>
         <div className="h-64">
           {data.length === 0 ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -71,7 +76,7 @@ export function ChartEspecialidades({ agendamentos }: Props) {
             </ResponsiveContainer>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   );
 }
