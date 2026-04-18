@@ -10,6 +10,26 @@ ID: `eqqEnl042R9NZN_UWToot`
 
 ---
 
+## STATUS DA IMPLEMENTAÇÃO (verificado em 18/04 via MCP)
+
+| # | Item | Status | Observação |
+|---|------|--------|------------|
+| 1 | Tool Listar Especialidades | OK Aplicado | Lê `especialidades?ativo=eq.true` corretamente |
+| 2 | Tool Buscar Agenda | OK Aplicado | `espMap` removido, usa ILIKE em `especialidades` |
+| 3 | Tool Buscar Agenda por Periodo | OK Aplicado | Filtro de turno por hora funcionando |
+| 4 | Tool Confirmar Agendamento | OK Aplicado | PATCH no slot `disponivel` -> `confirmado` |
+| 5 | Tool Registrar Feedback | PARCIAL | JS Code OK, mas **input schema está vazio** — colar o JSON da seção 5 no campo `inputSchema` do node |
+| 6 | AI Agent Sofia — system prompt | PENDENTE | Ainda contém emojis (🏥 📅 ✅ 💙 😊 🚨 🩺 ❤️ 🌿 🌸 🦴 👶) e lista fixa de 6 especialidades hardcoded. Substituir 100% pelo texto da seção 6 |
+
+### O que falta fazer agora
+
+1. **Abrir node `Tool Registrar Feedback`** -> ativar **Specify Input Schema** -> colar o JSON da seção 5 deste documento.
+2. **Abrir node `AI Agent Sofia`** -> campo `systemMessage` -> apagar tudo e colar o prompt da seção 6 (sem emojis, sem lista fixa de especialidades).
+3. Salvar e ativar o workflow.
+4. Rodar checklist da seção 7.
+
+---
+
 ## 0. Visão geral
 
 Foram identificadas **6 lacunas** entre o app `/cadastros` + banco Supabase
