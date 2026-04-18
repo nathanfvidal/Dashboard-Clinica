@@ -245,7 +245,7 @@ export function CalendarioSemana({
                   <div key={h} className="h-14 border-b border-border/30" />
                 ))}
 
-                {/* Linha indicadora da hora atual — só renderiza no dia de hoje e dentro da faixa visível */}
+                {/* Linha indicadora da hora atual — apenas o traço dentro da coluna do dia de hoje */}
                 {(() => {
                   if (!isSameDay(d, agora)) return null;
                   const minutosDesdeInicio =
@@ -359,6 +359,28 @@ export function CalendarioSemana({
               </div>
             );
           })}
+
+          {/* Rótulo da hora atual sobre a coluna de horas (60px à esquerda) */}
+          {(() => {
+            const semanaTemHoje = dias.some((d) => isSameDay(d, agora));
+            if (!semanaTemHoje) return null;
+            const minutosDesdeInicio =
+              (agora.getHours() - HORA_INICIO) * 60 + agora.getMinutes();
+            const totalMin = (HORA_FIM - HORA_INICIO) * 60;
+            if (minutosDesdeInicio < 0 || minutosDesdeInicio > totalMin) return null;
+            const topAgora = (minutosDesdeInicio / 60) * PX_POR_HORA;
+            return (
+              <div
+                className="pointer-events-none absolute left-0 z-30 flex h-0 w-[60px] items-center justify-end pr-1"
+                style={{ top: `${topAgora}px` }}
+                aria-hidden="true"
+              >
+                <span className="rounded-sm bg-destructive px-1 py-0.5 text-[0.6rem] font-semibold leading-none tabular-nums text-destructive-foreground shadow-sm">
+                  {format(agora, "HH:mm")}
+                </span>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
