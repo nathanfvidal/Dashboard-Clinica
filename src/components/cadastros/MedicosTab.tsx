@@ -64,6 +64,7 @@ export function MedicosTab() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Medico | null>(null);
   const [horariosMedico, setHorariosMedico] = useState<Medico | null>(null);
+  const [removendo, setRemovendo] = useState<Medico | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -293,9 +294,7 @@ export function MedicosTab() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => {
-                          if (confirm(`Remover ${m.nome}?`)) remover.mutate(m.id);
-                        }}
+                        onClick={() => setRemovendo(m)}
                         aria-label="Remover médico"
                         title="Remover"
                       >
