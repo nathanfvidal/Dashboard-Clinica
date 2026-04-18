@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CalendarDays, CheckCircle2, Pencil, Plus, XCircle } from "lucide-react";
+import { CalendarDays, CheckCircle2, LayoutGrid, List, Pencil, Plus, XCircle } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CalendarioMes } from "@/components/agenda/CalendarioMes";
+import { CalendarioSemana } from "@/components/agenda/CalendarioSemana";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { Button } from "@/components/ui/button";
@@ -56,6 +59,8 @@ export default function Agenda() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [openNovo, setOpenNovo] = useState(false);
   const [editando, setEditando] = useState<Agendamento | null>(null);
+  const [visao, setVisao] = useState<"tabela" | "semana" | "mes">("tabela");
+  const [refData, setRefData] = useState<Date>(new Date());
 
   useRealtimeTable("agendamentos", ["agendamentos"]);
 
@@ -114,20 +119,38 @@ export default function Agenda() {
             </p>
           </div>
         </div>
-        <Dialog open={openNovo} onOpenChange={setOpenNovo}>
-          <DialogTrigger asChild>
-            <Button className="h-10">
-              <Plus className="h-4 w-4" />
-              Novo agendamento
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-xl border-border/40 bg-popover/80 backdrop-blur-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl tracking-tight">Novo agendamento</DialogTitle>
-            </DialogHeader>
-            <AgendamentoForm onDone={() => setOpenNovo(false)} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Tabs value={visao} onValueChange={(v) => setVisao(v as typeof visao)}>
+            <TabsList className="h-10 border border-border/40 bg-background/40 backdrop-blur-xl">
+              <TabsTrigger value="tabela" className="gap-1.5 px-3 text-xs">
+                <List className="h-3.5 w-3.5" />
+                Tabela
+              </TabsTrigger>
+              <TabsTrigger value="semana" className="gap-1.5 px-3 text-xs">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Semana
+              </TabsTrigger>
+              <TabsTrigger value="mes" className="gap-1.5 px-3 text-xs">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Mês
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Dialog open={openNovo} onOpenChange={setOpenNovo}>
+            <DialogTrigger asChild>
+              <Button className="h-10">
+                <Plus className="h-4 w-4" />
+                Novo agendamento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-xl border-border/40 bg-popover/80 backdrop-blur-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-xl tracking-tight">Novo agendamento</DialogTitle>
+              </DialogHeader>
+              <AgendamentoForm onDone={() => setOpenNovo(false)} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <GlassCard>
@@ -193,6 +216,7 @@ export default function Agenda() {
         </GlassCardContent>
       </GlassCard>
 
+      {visao === "tabela" && (
       <GlassCard>
         <GlassCardContent className="p-0">
           <Table>
@@ -280,6 +304,43 @@ export default function Agenda() {
           </Table>
         </GlassCardContent>
       </GlassCard>
+      )}
+
+      {visao === "semana" && (
+        <GlassCard>
+          <GlassCardContent className="p-4">
+            <CalendarioSemana
+              semanaRef={refData}
+              agendamentos={filtrados}
+              onMudarSemana={setRefData}
+              onSelecionarAgendamento={(id) => {
+                const ag = agendamentos.find((a) => a.id === id);
+                if (ag) setEditando(ag);
+              }}
+            />
+          </GlassCardContent>
+        </GlassCard>
+      )}
+
+      {visao === "mes" && (
+        <GlassCard>
+          <GlassCardContent className="p-4">
+            <CalendarioMes
+              mesRef={refData}
+              agendamentos={filtrados}
+              onMudarMes={setRefData}
+              onSelecionarDia={(d) => {
+                setFiltroData(d);
+                setVisao("tabela");
+              }}
+              onSelecionarAgendamento={(id) => {
+                const ag = agendamentos.find((a) => a.id === id);
+                if (ag) setEditando(ag);
+              }}
+            />
+          </GlassCardContent>
+        </GlassCard>
+      )}
 
       <Dialog open={Boolean(editando)} onOpenChange={(o) => !o && setEditando(null)}>
         <DialogContent className="max-w-xl border-border/40 bg-popover/80 backdrop-blur-2xl">
