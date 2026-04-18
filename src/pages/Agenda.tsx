@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CalendarDays, CheckCircle2, Pencil, Plus, XCircle } from "lucide-react";
+import { CalendarDays, CheckCircle2, LayoutGrid, List, Pencil, Plus, XCircle } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CalendarioMes } from "@/components/agenda/CalendarioMes";
+import { CalendarioSemana } from "@/components/agenda/CalendarioSemana";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { Button } from "@/components/ui/button";
@@ -56,6 +59,8 @@ export default function Agenda() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [openNovo, setOpenNovo] = useState(false);
   const [editando, setEditando] = useState<Agendamento | null>(null);
+  const [visao, setVisao] = useState<"tabela" | "semana" | "mes">("tabela");
+  const [refData, setRefData] = useState<Date>(new Date());
 
   useRealtimeTable("agendamentos", ["agendamentos"]);
 
