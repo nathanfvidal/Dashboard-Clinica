@@ -1,12 +1,25 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Medico } from "@/hooks/useMedicos";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -15,14 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PreviewSemana } from "./PreviewSemana";
+import { LinhaHorarioSortable } from "./LinhaHorarioSortable";
 
 interface Props {
   medico: Medico | null;
@@ -139,11 +146,36 @@ export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
 
   const remover = (key: string) => setLinhas((l) => l.filter((x) => x._key !== key));
 
+  const duplicar = (key: string) =>
+    setLinhas((l) => {
+      const idx = l.findIndex((x) => x._key === key);
+      if (idx === -1) return l;
+      const copia = { ...l[idx], _key: crypto.randomUUID(), id: undefined };
+      return [...l.slice(0, idx + 1), copia, ...l.slice(idx + 1)];
+    });
+
   const aplicarTemplate = () =>
     setLinhas(TEMPLATE_PADRAO.map((t) => ({ ...t, _key: crypto.randomUUID() })));
 
   const atualizar = (key: string, campo: keyof Horario, valor: string | number) =>
     setLinhas((l) => l.map((x) => (x._key === key ? { ...x, [campo]: valor } : x)));
+
+  // Sensores do dnd-kit: pointer com pequena distância para não atrapalhar cliques
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setLinhas((l) => {
+      const oldIndex = l.findIndex((x) => x._key === active.id);
+      const newIndex = l.findIndex((x) => x._key === over.id);
+      if (oldIndex === -1 || newIndex === -1) return l;
+      return arrayMove(l, oldIndex, newIndex);
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -165,71 +197,35 @@ export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
           </Button>
         </div>
 
-        <div className="max-h-[50vh] space-y-2 overflow-auto pr-1">
-          {linhas.length === 0 && (
-            <p className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              Nenhum horário definido. Adicione manualmente ou aplique o template.
-            </p>
-          )}
-          {linhas.map((l) => (
-            <div
-              key={l._key}
-              className="grid grid-cols-12 items-end gap-2 rounded-md border border-border p-3"
-            >
-              <div className="col-span-4">
-                <Label className="text-xs">Dia</Label>
-                <Select
-                  value={String(l.dia_semana ?? 1)}
-                  onValueChange={(v) => atualizar(l._key, "dia_semana", Number(v))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DIAS.map((d, i) => (
-                      <SelectItem key={i} value={String(i)}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-3">
-                <Label className="text-xs">Início</Label>
-                <Input
-                  type="time"
-                  value={l.hora_inicio ?? ""}
-                  onChange={(e) => atualizar(l._key, "hora_inicio", e.target.value)}
-                />
-              </div>
-              <div className="col-span-3">
-                <Label className="text-xs">Fim</Label>
-                <Input
-                  type="time"
-                  value={l.hora_fim ?? ""}
-                  onChange={(e) => atualizar(l._key, "hora_fim", e.target.value)}
-                />
-              </div>
-              <div className="col-span-1">
-                <Label className="text-xs">Min</Label>
-                <Input
-                  type="number"
-                  min={5}
-                  step={5}
-                  value={l.duracao_consulta_min ?? 30}
-                  onChange={(e) =>
-                    atualizar(l._key, "duracao_consulta_min", Number(e.target.value))
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext
+            items={linhas.map((l) => l._key)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="max-h-[50vh] space-y-2 overflow-auto pr-1">
+              {linhas.length === 0 && (
+                <p className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  Nenhum horário definido. Adicione manualmente ou aplique o template.
+                </p>
+              )}
+              {linhas.map((l) => (
+                <LinhaHorarioSortable
+                  key={l._key}
+                  id={l._key}
+                  dia_semana={l.dia_semana}
+                  hora_inicio={l.hora_inicio}
+                  hora_fim={l.hora_fim}
+                  duracao_consulta_min={l.duracao_consulta_min}
+                  onChange={(campo, valor) =>
+                    atualizar(l._key, campo as keyof Horario, valor)
                   }
+                  onRemove={() => remover(l._key)}
+                  onDuplicate={() => duplicar(l._key)}
                 />
-              </div>
-              <div className="col-span-1 flex justify-end">
-                <Button variant="ghost" size="icon" onClick={() => remover(l._key)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
 
         <PreviewSemana linhas={linhas} />
 
