@@ -246,7 +246,14 @@ export function CalendarioSemana({
                   );
                 })()}
 
-
+                {/* Drop zones de 30 em 30 min — sobrepostas, invisíveis até hover durante drag */}
+                {onMoverAgendamento &&
+                  slotsDrop.map((slot) => {
+                    const ativo =
+                      arrastando &&
+                      alvo?.data === chave &&
+                      alvo?.slot === slot;
+                    return (
                       <div
                         key={slot}
                         onDragOver={(e) => {
