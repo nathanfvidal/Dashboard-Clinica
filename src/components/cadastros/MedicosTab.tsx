@@ -116,6 +116,7 @@ export function MedicosTab() {
     onSuccess: () => {
       toast({ title: "Médico removido" });
       queryClient.invalidateQueries({ queryKey: ["medicos"] });
+      setRemovendo(null);
     },
     onError: (e: Error) =>
       toast({ title: "Erro ao remover", description: e.message, variant: "destructive" }),
@@ -336,6 +337,25 @@ export function MedicosTab() {
         medico={horariosMedico}
         open={!!horariosMedico}
         onOpenChange={(v) => !v && setHorariosMedico(null)}
+      />
+
+      <ConfirmDialog
+        open={!!removendo}
+        onOpenChange={(o) => !o && setRemovendo(null)}
+        title="Remover médico"
+        description={
+          removendo && (
+            <>
+              Tem certeza que deseja remover{" "}
+              <span className="font-semibold text-foreground">{removendo.nome}</span>?
+              Esta ação não pode ser desfeita e pode afetar agendamentos vinculados.
+            </>
+          )
+        }
+        confirmLabel="Remover"
+        pendingLabel="Removendo..."
+        pending={remover.isPending}
+        onConfirm={() => removendo && remover.mutate(removendo.id)}
       />
     </div>
   );
