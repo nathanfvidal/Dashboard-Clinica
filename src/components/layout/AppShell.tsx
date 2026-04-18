@@ -12,6 +12,8 @@ const navItems = [
 
 export default function AppShell() {
   const location = useLocation();
+  // Notificação global (toast + bip) ao detectar bot pausado em tempo real
+  useAlertaBotPausado();
 
   return (
     <div className="min-h-screen text-foreground">
