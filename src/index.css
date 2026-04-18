@@ -288,3 +288,23 @@
     z-index: 2;
   }
 }
+
+@layer utilities {
+  /* Esconde os spinners (setas ↑↓) e o seletor AM/PM dos inputs nativos
+     de tempo no WebKit/Chromium para um visual mais limpo. */
+  .time-input-24::-webkit-calendar-picker-indicator,
+  .date-input-br::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+    opacity: 0.6;
+    cursor: pointer;
+  }
+  .time-input-24::-webkit-inner-spin-button,
+  .time-input-24::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
+  .time-input-24::-webkit-datetime-edit-ampm-field {
+    display: none;
+  }
+}

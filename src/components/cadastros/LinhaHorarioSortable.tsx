@@ -3,6 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, Copy, Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TimeInput24 } from "@/components/ui/time-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -162,9 +163,8 @@ export function LinhaHorarioSortable({
           <Label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Início
           </Label>
-          <Input
-            type="time"
-            className="h-9 border-border/50 bg-background/40 tabular-nums"
+          <TimeInput24
+            className="h-9 border-border/50 bg-background/40"
             value={hora_inicio ?? ""}
             onChange={(e) => onChange("hora_inicio", e.target.value)}
           />
@@ -174,9 +174,8 @@ export function LinhaHorarioSortable({
           <Label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Fim
           </Label>
-          <Input
-            type="time"
-            className="h-9 border-border/50 bg-background/40 tabular-nums"
+          <TimeInput24
+            className="h-9 border-border/50 bg-background/40"
             value={hora_fim ?? ""}
             onChange={(e) => onChange("hora_fim", e.target.value)}
           />

@@ -69,8 +69,11 @@ export function CalendarioMes({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-lg font-semibold capitalize tracking-tight">
-          {format(mesRef, "MMMM 'de' yyyy", { locale: ptBR })}
+        <h3 className="text-lg font-semibold tracking-tight">
+          {(() => {
+            const t = format(mesRef, "MMMM 'de' yyyy", { locale: ptBR });
+            return t.charAt(0).toUpperCase() + t.slice(1);
+          })()}
         </h3>
         <div className="flex items-center gap-1">
           <Button

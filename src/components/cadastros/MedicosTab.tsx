@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Pencil, Plus, Trash2 } from "lucide-react";
+import { Clock, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { getIconeEspecialidade } from "@/lib/icones-especialidade";
 import { supabase } from "@/integrations/supabase/client";
 import { useMedicos, type Medico } from "@/hooks/useMedicos";
@@ -14,6 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -219,7 +225,7 @@ export function MedicosTab() {
               <TableHead>CRM</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead className="w-24">Status</TableHead>
-              <TableHead className="w-[340px] text-right">Ações</TableHead>
+              <TableHead className="w-[260px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -262,36 +268,61 @@ export function MedicosTab() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
+                    <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9"
+                        className="h-8 px-2.5 text-xs"
                         onClick={() => setHorariosMedico(m)}
                       >
-                        <Clock className="mr-1.5 h-3.5 w-3.5" /> Horários
+                        <Clock className="mr-1 h-3.5 w-3.5" /> Horários
                       </Button>
-                      <GerarAgendaButton medicoId={m.id} medicoNome={m.nome} />
+                      <Separator orientation="vertical" className="mx-1 h-5 bg-border/40" />
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9"
+                        className="h-8 w-8"
                         onClick={() => abrirEditar(m)}
                         aria-label="Editar médico"
+                        title="Editar"
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive"
+                        className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => {
                           if (confirm(`Remover ${m.nome}?`)) remover.mutate(m.id);
                         }}
                         aria-label="Remover médico"
+                        title="Remover"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            aria-label="Mais ações"
+                            title="Mais ações"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="border-border/40 bg-popover/85 backdrop-blur-2xl"
+                        >
+                          <GerarAgendaButton
+                            medicoId={m.id}
+                            medicoNome={m.nome}
+                            asMenuItem
+                          />
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </TableRow>
