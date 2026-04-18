@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { addDays, eachDayOfInterval, endOfWeek, format, isToday, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { statusBadgeClass } from "@/lib/status";
@@ -21,23 +21,39 @@ interface Props {
   agendamentos: AgendamentoLite[];
   onMudarSemana: (novo: Date) => void;
   onSelecionarAgendamento: (id: string) => void;
+  /**
+   * Disparado quando o usuário arrasta um card para outro slot.
+   * Recebe o id, a nova data (YYYY-MM-DD) e o novo horário (HH:MM:SS).
+   * Quem chama deve fazer o update no backend.
+   */
+  onMoverAgendamento?: (id: string, novaData: string, novoHorario: string) => void;
 }
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 // Faixa horária mostrada na grade (07h–20h cobre clínica padrão).
 const HORA_INICIO = 7;
 const HORA_FIM = 20;
+// Granularidade do drop (30 minutos = metade do slot de 1h).
+const SLOT_MIN = 30;
+const PX_POR_HORA = 56; // h-14
+const PX_POR_SLOT = (PX_POR_HORA * SLOT_MIN) / 60; // 28px
 
 /**
  * Visão semanal — colunas por dia, linhas por hora cheia.
  * Cards de agendamento posicionados absolutamente conforme horário.
+ * Suporta drag-and-drop com snap de 30min para remarcar.
  */
 export function CalendarioSemana({
   semanaRef,
   agendamentos,
   onMudarSemana,
   onSelecionarAgendamento,
+  onMoverAgendamento,
 }: Props) {
+  // ID sendo arrastado e indicador visual da zona alvo
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [alvo, setAlvo] = useState<{ data: string; slot: number } | null>(null);
+
   const dias = useMemo(() => {
     const inicio = startOfWeek(semanaRef, { weekStartsOn: 0 });
     const fim = endOfWeek(semanaRef, { weekStartsOn: 0 });
@@ -48,6 +64,12 @@ export function CalendarioSemana({
     const arr: number[] = [];
     for (let h = HORA_INICIO; h <= HORA_FIM; h++) arr.push(h);
     return arr;
+  }, []);
+
+  // Slots de 30min para drop zones — cobre a grade inteira
+  const slotsDrop = useMemo(() => {
+    const total = (HORA_FIM - HORA_INICIO) * (60 / SLOT_MIN);
+    return Array.from({ length: total }, (_, i) => i);
   }, []);
 
   // Agrupa agendamentos por dia (YYYY-MM-DD) pra lookup rápido
@@ -63,6 +85,29 @@ export function CalendarioSemana({
 
   const inicioSemana = dias[0];
   const fimSemana = dias[6];
+
+  // Converte índice de slot em "HH:MM:SS"
+  const slotParaHorario = (slot: number) => {
+    const totalMin = HORA_INICIO * 60 + slot * SLOT_MIN;
+    const h = Math.floor(totalMin / 60).toString().padStart(2, "0");
+    const m = (totalMin % 60).toString().padStart(2, "0");
+    return `${h}:${m}:00`;
+  };
+
+  const aoSoltar = (data: string, slot: number) => {
+    if (!arrastando || !onMoverAgendamento) return;
+    const novoHorario = slotParaHorario(slot);
+    const ag = agendamentos.find((a) => a.id === arrastando);
+    // Evita disparo se nada mudou
+    if (ag && ag.data_consulta === data && ag.horario === novoHorario) {
+      setArrastando(null);
+      setAlvo(null);
+      return;
+    }
+    onMoverAgendamento(arrastando, data, novoHorario);
+    setArrastando(null);
+    setAlvo(null);
+  };
 
   return (
     <div className="space-y-3">
@@ -100,6 +145,14 @@ export function CalendarioSemana({
           </Button>
         </div>
       </div>
+
+      {onMoverAgendamento && (
+        <p className="px-1 text-[11px] text-muted-foreground/70">
+          Dica: arraste um card pelo punho{" "}
+          <GripVertical className="inline h-3 w-3 align-text-bottom" /> para
+          remarcar (snap 30 min).
+        </p>
+      )}
 
       <div className="overflow-hidden rounded-xl border border-border/40">
         {/* Cabeçalho de dias */}
@@ -150,31 +203,102 @@ export function CalendarioSemana({
               <div
                 key={chave}
                 className="relative border-l border-border/30"
-                style={{ height: `${horas.length * 56}px` }}
+                style={{ height: `${horas.length * PX_POR_HORA}px` }}
               >
+                {/* Linhas de hora cheia (visual) */}
                 {horas.map((h) => (
                   <div key={h} className="h-14 border-b border-border/30" />
                 ))}
+
+                {/* Drop zones de 30 em 30 min — sobrepostas, invisíveis até hover durante drag */}
+                {onMoverAgendamento &&
+                  slotsDrop.map((slot) => {
+                    const ativo =
+                      arrastando &&
+                      alvo?.data === chave &&
+                      alvo?.slot === slot;
+                    return (
+                      <div
+                        key={slot}
+                        onDragOver={(e) => {
+                          if (!arrastando) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          if (alvo?.data !== chave || alvo?.slot !== slot) {
+                            setAlvo({ data: chave, slot });
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (alvo?.data === chave && alvo?.slot === slot) {
+                            setAlvo(null);
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          aoSoltar(chave, slot);
+                        }}
+                        style={{
+                          top: `${slot * PX_POR_SLOT}px`,
+                          height: `${PX_POR_SLOT}px`,
+                        }}
+                        className={cn(
+                          "absolute inset-x-0 z-10 transition-colors",
+                          arrastando && "hover:bg-primary/10",
+                          ativo && "bg-primary/20 ring-1 ring-inset ring-primary/40",
+                        )}
+                      />
+                    );
+                  })}
+
+                {/* Cards de agendamento */}
                 {items.map((a) => {
                   const [hh, mm] = a.horario.split(":").map(Number);
                   if (hh < HORA_INICIO || hh > HORA_FIM) return null;
-                  // 56px por hora (h-14)
-                  const top = (hh - HORA_INICIO) * 56 + (mm / 60) * 56;
+                  const top = (hh - HORA_INICIO) * PX_POR_HORA + (mm / 60) * PX_POR_HORA;
+                  const arrastandoEste = arrastando === a.id;
                   return (
-                    <button
+                    <div
                       key={a.id}
-                      type="button"
+                      draggable={!!onMoverAgendamento}
+                      onDragStart={(e) => {
+                        if (!onMoverAgendamento) return;
+                        setArrastando(a.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", a.id);
+                      }}
+                      onDragEnd={() => {
+                        setArrastando(null);
+                        setAlvo(null);
+                      }}
                       onClick={() => onSelecionarAgendamento(a.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onSelecionarAgendamento(a.id);
+                        }
+                      }}
                       className={cn(
-                        "absolute left-1 right-1 truncate rounded-md border px-1.5 py-1 text-left text-[0.7rem] font-medium shadow-sm transition-transform hover:scale-[1.02]",
+                        "group absolute left-1 right-1 z-20 flex items-start gap-1 truncate rounded-md border px-1.5 py-1 text-left text-[0.7rem] font-medium shadow-sm transition-all",
+                        "hover:scale-[1.02] hover:shadow-md",
                         statusBadgeClass(a.status),
+                        onMoverAgendamento && "cursor-grab active:cursor-grabbing",
+                        arrastandoEste && "opacity-40",
                       )}
-                      style={{ top: `${top}px`, minHeight: "28px" }}
+                      style={{ top: `${top}px`, minHeight: "32px" }}
                       title={`${a.horario.slice(0, 5)} ${a.medico} — ${a.paciente_nome ?? "sem nome"}`}
                     >
-                      <div className="tabular-nums">{a.horario.slice(0, 5)}</div>
-                      <div className="truncate opacity-90">{a.paciente_nome ?? a.medico}</div>
-                    </button>
+                      {onMoverAgendamento && (
+                        <GripVertical className="mt-0.5 h-3 w-3 shrink-0 opacity-40 transition-opacity group-hover:opacity-80" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="tabular-nums">{a.horario.slice(0, 5)}</div>
+                        <div className="truncate opacity-90">
+                          {a.paciente_nome ?? a.medico}
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
