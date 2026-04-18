@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PreviewSemana } from "./PreviewSemana";
 
 interface Props {
   medico: Medico | null;
@@ -146,7 +147,7 @@ export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Horários — {medico?.nome}</DialogTitle>
           <DialogDescription>
@@ -229,6 +230,8 @@ export function HorariosMedicoDialog({ medico, open, onOpenChange }: Props) {
             </div>
           ))}
         </div>
+
+        <PreviewSemana linhas={linhas} />
 
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
