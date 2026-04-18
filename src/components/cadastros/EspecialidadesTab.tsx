@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { GlassCard } from "@/components/ui/glass-card";
 import { ICONES_ESPECIALIDADE, getIconeEspecialidade } from "@/lib/icones-especialidade";
 import {
   Table,
@@ -189,7 +190,7 @@ export function EspecialidadesTab() {
         </Dialog>
       </div>
 
-      <div className="glass-card overflow-hidden p-0">
+      <GlassCard spotlight className="overflow-hidden p-0">
         <Table>
           <TableHeader>
             <TableRow>
