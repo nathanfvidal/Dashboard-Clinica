@@ -1,88 +1,50 @@
 
 
-## Teste de fogo TOTAL — v10 + workflows auxiliares (crons, feedbacks, lembretes)
+Vou refazer toda a bateria de testes assumindo que o v11 (com `checkExists: false`) já está importado e ativo. Plano enxuto:
 
-Objetivo: validar **tudo** — Sofia (workflow principal), workflows agendados (lembretes D-1 / 2h, pedido de feedback, limpeza de sessão humana), todas as tools, efeito em banco e reflexo na UI. Sofia precisa responder em tópicos.
+## Execução
 
-## Fase 0 — Descoberta de workflows auxiliares (NOVO)
+**Fase 0 — Descoberta** (`mcp_n8n_eJdzs--search_workflows` + `get_workflow_details`)
+- Mapear v11 principal + 3 crons (D-1, T-2h, Pesquisa) + verificar se há "Reativar Sessão".
+- Confirmar que os 4 nós Evolution estão com `options.checkExists=false`.
 
-1. `mcp_n8n_eJdzs--search_workflows` query "clinica" / "lembrete" / "feedback" / "cron" → listar todo workflow do projeto.
-2. Para cada workflow auxiliar encontrado: `get_workflow_details` para mapear:
-   - Trigger (Schedule? Webhook? Manual?)
-   - Cron expression
-   - Tabelas que lê/escreve (`agendamentos.lembrete_d1_enviado_at`, `lembrete_2h_enviado_at`, `feedback_solicitado_at`)
-   - Última execução (se acessível)
-3. Listar SQL: agendamentos elegíveis para cada cron (D-1, 2h, feedback) — base de teste.
+**Fase 1 — Baseline SQL** (`supabase--read_query`)
+- Contar `mensagens`, `agendamentos`, `pacientes`, `atendimentos_humanos`, `feedbacks`, `solicitacoes`.
+- Capturar timestamp de corte.
 
-Esperado descobrir 3-4 workflows: `Lembrete D-1`, `Lembrete 2h`, `Pedir Feedback`, possivelmente `Reativar Sessão` (timeout humano).
+**Fase 2 — Bateria Sofia (16 cenários)** via `mcp_n8n_eJdzs--execute_workflow` com webhook nos telefones `5583912350001..016`:
+- A. Fluxo feliz (1-5): oi, pediatria tarde, agendar+confirmar, remarcar, cancelar
+- B. Tools (6-9): especialidades, médicos cardio, agenda período, feedback nota 5
+- C. Handoff (10-11): pedir humano, segunda mensagem (bot mudo)
+- D. Caos (12-16): emoji, filosofia, médico inexistente, ameaça, SQL injection
 
-## Fase 1 — Auditoria do principal (v10)
+Entre cenários: 2s de espera. Após cada: SELECT pra provar efeito.
 
-1. `get_workflow_details` no `eqqEnl042R9NZN_UWToot` → confirmar v10 ativo, listar 9 tools, ler system prompt atual.
-2. SQL baseline: agendamentos disponíveis, contagens (`pacientes`, `atendimentos_humanos`, `feedbacks`, `solicitacoes`, `mensagens`), timestamp de corte.
+**Fase 3 — Crons auxiliares** no telefone `5583912350020`:
+1. Inserir agendamento amanhã → executar cron D-1 → validar `lembrete_d1_enviado_at` + `mensagens.direcao='out'`
+2. Inserir agendamento hoje+2h → executar cron T-2h → validar `lembrete_2h_enviado_at`
+3. Inserir agendamento ontem confirmado → executar cron Pesquisa → validar `feedback_solicitado_at`
 
-## Fase 2 — Reescrever system prompt da Sofia (v11)
+**Fase 4 — Validação SQL final**
+- Provar 16 mensagens `in` + 16 mensagens `out` da Sofia + 3 mensagens `out` dos crons.
+- Provar `agendamentos.status='confirmado'` no cenário 3, `cancelado` no 5.
+- Provar linhas em `atendimentos_humanos`, `feedbacks`, `solicitacoes`.
 
-Regras obrigatórias:
-- Sempre tópicos com `•` e quebras de linha — nunca parágrafo corrido.
-- Horários agrupados por **data → médico → lista de horários**, IDs guardados em contexto (não exibir UUID).
-- Confirmar especialidade/médico/data/horário/nome **antes** de `confirmar_agendamento`.
-- Fora de escopo (clima, piada, política): 1 linha educada + redireciona pro menu.
-- Mensagem sem sentido / só emoji: pede esclarecimento listando o que ela faz.
-- Toda ação que altera banco termina com "Pronto, registrei isso aqui." + resumo em tópicos.
+**Fase 5 — Validação visual UI** (`browser--navigate_to_sandbox` + `browser--screenshot`)
+- `/` Dashboard → KPIs subiram, gráficos, listas
+- `/agenda` → slot confirmado colorido com nome
+- `/cadastros` → contagens batem
+- Screenshot 1952px de cada tela
 
-## Fase 3 — Bateria principal (16 cenários, telefones `5583912350001..016`)
-
-**A. Fluxo feliz (1-5):** "oi" / "quero pediatria de tarde" / agendar+confirmar / remarcar / cancelar.
-**B. Tools auxiliares (6-9):** especialidades, médicos por especialidade, agenda por período, feedback nota 5.
-**C. Handoff humano (10-11):** pedir humano / segunda mensagem do mesmo telefone (bot tem que ficar mudo).
-**D. Caos (12-16):** só emoji, pergunta filosófica, médico inexistente, mensagem ameaçadora, SQL injection.
-
-## Fase 4 — Crons e workflows auxiliares (NOVO)
-
-Para cada workflow auxiliar descoberto na Fase 0:
-
-1. **Preparar dado de teste**: inserir/atualizar agendamento do telefone `5583912350020` para cair na janela do cron:
-   - Lembrete D-1: `data_consulta = amanhã`, `lembrete_d1_enviado_at = NULL`
-   - Lembrete 2h: `data_consulta = hoje`, `horario = now+2h`, `lembrete_2h_enviado_at = NULL`
-   - Feedback: `data_consulta < hoje`, `status='confirmado'`, `feedback_solicitado_at = NULL`
-2. **Disparar manualmente** via `mcp_n8n_eJdzs--execute_workflow` (workflows agendados também podem ser executados manualmente).
-3. **Validar SQL pós-execução**:
-   - Coluna `lembrete_*_enviado_at` ou `feedback_solicitado_at` preenchida.
-   - Linha em `mensagens` com `direcao='out'`, `agente='cron-lembrete'` ou similar, conteúdo correto.
-4. **Reativação automática** (se existir workflow de timeout): forçar `pacientes.ultima_atividade_bot` antiga, executar, validar `status_sessao='ia'`.
-
-## Fase 5 — Validação SQL geral
-
-`mensagens` (in/out/cron), `agendamentos` (status antes/depois + colunas de lembrete), `pacientes.status_sessao`, `atendimentos_humanos`, `feedbacks`, `solicitacoes`.
-
-## Fase 6 — Validação visual da UI (browser tool)
-
-- `/` Dashboard → KPIs (agendamentos hoje, fila humana, feedback médio), gráficos, listas atualizadas.
-- `/agenda` → slot confirmado colorido com nome do paciente, semana e mês.
-- `/cadastros` → contagens batem.
-- Screenshot de cada tela + checklist (overflow, cores, badges, responsivo 1952px).
-
-## Fase 7 — Relatório final
-
-Arquivo `docs/n8n-teste-de-fogo-v11.md`:
-- **Tabela 1**: 16 cenários Sofia × execution_id × tools × SQL antes/depois × resposta literal × ✅/❌.
-- **Tabela 2**: N workflows auxiliares × cron × dado de teste × execução × efeito SQL × ✅/❌.
-- Screenshots da UI anotados.
-- Bugs encontrados + patch v11 (se mexer em prompt) ou patches dedicados pra workflows auxiliares.
-- Recomendações de hardening (alertas, retries, idempotência).
-
-## Detalhes técnicos
-
-- Telefones isolados `5583912350xxx` (Sofia) e `5583912350020+` (crons) — não polui histórico.
-- Entre testes: 2s pra realtime React propagar antes do screenshot.
-- Falha de tom/formato → ajusto só system prompt (v11). Falha de tool → patch cirúrgico no JSON correspondente.
-- Quota: ~16 execuções principal + ~4 execuções auxiliares + ~40 SELECTs + 3 screenshots. OK.
+**Fase 6 — Relatório** em `docs/n8n-teste-de-fogo-v12.md`:
+- Tabela 1: 16 cenários × execId × tools × SQL × resposta × ✅/❌
+- Tabela 2: 3 crons × dado teste × execId × efeito SQL × ✅/❌
+- Screenshots anotados
+- Bugs remanescentes + recomendações de hardening
 
 ## Critério de aceite
-
-- 16/16 cenários Sofia ✅ + 100% em tópicos.
-- 100% dos workflows auxiliares disparam, marcam coluna de controle e logam em `mensagens`.
-- Zero crash de tool, zero violação de constraint, zero loop de cron (idempotência verificada).
-- Dashboard/Agenda/Cadastros refletem mudanças em < 3s.
+- 16/16 Sofia ✅ com mensagem `out` no banco (graças ao `checkExists:false`)
+- 3/3 crons marcam coluna de controle + logam em `mensagens`
+- Dashboard/Agenda refletem em <3s
+- Zero crash, zero violação de constraint
 
