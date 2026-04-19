@@ -206,7 +206,7 @@ export function ListaPacientes() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Telefone</TableHead>
-              <TableHead className="w-36">Agendamento</TableHead>
+              <TableHead className="w-32">Agendamento</TableHead>
               <TableHead className="w-40">Última interação</TableHead>
               <TableHead className="w-28 text-right">Ações</TableHead>
             </TableRow>
