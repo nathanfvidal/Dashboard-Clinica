@@ -376,7 +376,7 @@ export function CalendarioSemana({
           {/* Colunas dos dias */}
           {dias.map((d) => {
             const chave = format(d, "yyyy-MM-dd");
-            const items = porDia.get(chave) ?? [];
+            const items = porDia.get(chave) ?? { visiveis: [], overflows: [] };
             return (
               <div
                 key={chave}
