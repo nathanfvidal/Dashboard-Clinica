@@ -86,6 +86,22 @@ export function ListaPacientes() {
     },
   });
 
+  // Telefones com pelo menos um agendamento ativo (futuro ou hoje, status real)
+  const { data: telefonesComAgenda } = useQuery({
+    queryKey: ["pacientes-com-agendamento"],
+    queryFn: async () => {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("agendamentos")
+        .select("paciente_telefone")
+        .gte("data_consulta", hoje)
+        .in("status", ["confirmado", "pendente"])
+        .limit(2000);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.paciente_telefone));
+    },
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { nome: "", telefone: "" },
@@ -190,7 +206,7 @@ export function ListaPacientes() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Telefone</TableHead>
-              <TableHead className="w-32">Sessão</TableHead>
+              <TableHead className="w-36">Agendamento</TableHead>
               <TableHead className="w-40">Última interação</TableHead>
               <TableHead className="w-28 text-right">Ações</TableHead>
             </TableRow>
@@ -221,9 +237,15 @@ export function ListaPacientes() {
                 </TableCell>
                 <TableCell className="font-mono text-xs">{formatarTelefone(p.telefone)}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary" className="text-xs">
-                    {p.status_sessao ?? "menu"}
-                  </Badge>
+                  {telefonesComAgenda?.has(p.telefone) ? (
+                    <Badge className="bg-primary/15 text-primary hover:bg-primary/20">
+                      Agendado
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs text-muted-foreground">
+                      Sem agendamento
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {p.ultima_interacao
