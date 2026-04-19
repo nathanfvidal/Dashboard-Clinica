@@ -206,7 +206,7 @@ export function ListaPacientes() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Telefone</TableHead>
-              <TableHead className="w-32">Sessão</TableHead>
+              <TableHead className="w-36">Agendamento</TableHead>
               <TableHead className="w-40">Última interação</TableHead>
               <TableHead className="w-28 text-right">Ações</TableHead>
             </TableRow>
@@ -237,9 +237,15 @@ export function ListaPacientes() {
                 </TableCell>
                 <TableCell className="font-mono text-xs">{formatarTelefone(p.telefone)}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary" className="text-xs">
-                    {p.status_sessao ?? "menu"}
-                  </Badge>
+                  {telefonesComAgenda?.has(p.telefone) ? (
+                    <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400">
+                      Agendado
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs text-muted-foreground">
+                      Sem agendamento
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {p.ultima_interacao
