@@ -206,7 +206,7 @@ export function ListaPacientes() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Telefone</TableHead>
-              <TableHead className="w-36">Agendamento</TableHead>
+              <TableHead className="w-32">Agendamento</TableHead>
               <TableHead className="w-40">Última interação</TableHead>
               <TableHead className="w-28 text-right">Ações</TableHead>
             </TableRow>
@@ -238,13 +238,15 @@ export function ListaPacientes() {
                 <TableCell className="font-mono text-xs">{formatarTelefone(p.telefone)}</TableCell>
                 <TableCell>
                   {telefonesComAgenda?.has(p.telefone) ? (
-                    <Badge className="bg-primary/15 text-primary hover:bg-primary/20">
+                    <span className="inline-flex items-center gap-2 text-xs font-medium text-foreground">
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_hsl(var(--primary))]" />
                       Agendado
-                    </Badge>
+                    </span>
                   ) : (
-                    <Badge variant="secondary" className="text-xs text-muted-foreground">
-                      Sem agendamento
-                    </Badge>
+                    <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                      Sem agenda
+                    </span>
                   )}
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
