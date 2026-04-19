@@ -62,8 +62,25 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
 
   const sessaoPorTelefone = new Map(pacientesSessao.map((p) => [p.telefone, p.status_sessao]));
 
+  // Reativa o bot (status_sessao = 'ia') para o telefone do atendimento
+  async function reativarBotDoAtendimento(id: string) {
+    const { data: at } = await supabase
+      .from("atendimentos_humanos")
+      .select("paciente_telefone")
+      .eq("id", id)
+      .maybeSingle();
+    const tel = at?.paciente_telefone;
+    if (!tel) return;
+    await supabase
+      .from("pacientes")
+      .update({ status_sessao: "ia", ultima_interacao: new Date().toISOString() })
+      .eq("telefone", tel);
+  }
+
   const finalizar = useMutation({
     mutationFn: async (id: string) => {
+      // Reativa o bot ANTES de finalizar (precisa do telefone do registro)
+      await reativarBotDoAtendimento(id);
       const { error } = await supabase
         .from("atendimentos_humanos")
         .update({ status: "finalizado", finalizado_at: new Date().toISOString() })
@@ -71,21 +88,27 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Atendimento finalizado" });
+      toast({ title: "Atendimento finalizado", description: "Bot reativado para o paciente" });
       queryClient.invalidateQueries({ queryKey: ["atendimentos"] });
+      queryClient.invalidateQueries({ queryKey: ["pacientes-sessao"] });
+      queryClient.invalidateQueries({ queryKey: ["pacientes"] });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  // Exclui o registro de atendimento humano (não afeta o paciente nem o bot)
+  // Exclui o registro de atendimento humano e reativa o bot do paciente
   const excluir = useMutation({
     mutationFn: async (id: string) => {
+      // Reativa o bot ANTES de excluir (depois do delete não dá mais pra ler o telefone)
+      await reativarBotDoAtendimento(id);
       const { error } = await supabase.from("atendimentos_humanos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Atendimento excluído" });
+      toast({ title: "Atendimento excluído", description: "Bot reativado para o paciente" });
       queryClient.invalidateQueries({ queryKey: ["atendimentos"] });
+      queryClient.invalidateQueries({ queryKey: ["pacientes-sessao"] });
+      queryClient.invalidateQueries({ queryKey: ["pacientes"] });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
