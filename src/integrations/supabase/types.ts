@@ -305,6 +305,7 @@ export type Database = {
           telefone: string
           ultima_atividade_bot: string | null
           ultima_interacao: string | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
@@ -314,6 +315,7 @@ export type Database = {
           telefone: string
           ultima_atividade_bot?: string | null
           ultima_interacao?: string | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
@@ -323,6 +325,7 @@ export type Database = {
           telefone?: string
           ultima_atividade_bot?: string | null
           ultima_interacao?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
