@@ -95,6 +95,9 @@ export default function Agenda() {
 
   const filtrados = useMemo(() => {
     return agendamentos.filter((a) => {
+      // Quando o filtro de status é "todos", escondemos os slots livres (disponivel)
+      // pra mostrar apenas agendamentos efetivamente marcados.
+      if (filtroStatus === "todos" && a.status === "disponivel") return false;
       if (filtroData && a.data_consulta !== filtroData) return false;
       if (filtroMedico && !a.medico?.toLowerCase().includes(filtroMedico.toLowerCase())) return false;
       if (filtroEspecialidade !== "todas" && a.especialidade !== filtroEspecialidade) return false;
