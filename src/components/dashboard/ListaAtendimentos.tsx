@@ -236,6 +236,38 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
                           Finalizar
                         </Button>
                       )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            disabled={excluir.isPending}
+                            title="Excluir atendimento"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir atendimento?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação remove permanentemente o registro de atendimento humano de{" "}
+                              <span className="font-medium">{a.paciente_nome ?? a.paciente_telefone}</span>.
+                              Não afeta o paciente nem o status do bot.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => excluir.mutate(a.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
