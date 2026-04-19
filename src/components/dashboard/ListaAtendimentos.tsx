@@ -15,7 +15,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { statusBadgeClass } from "@/lib/status";
 import { format } from "date-fns";
-import { Bot, BotOff, CheckCircle2 } from "lucide-react";
+import { Bot, BotOff, CheckCircle2, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Atendimento {
   id: string;
@@ -61,6 +72,19 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
     },
     onSuccess: () => {
       toast({ title: "Atendimento finalizado" });
+      queryClient.invalidateQueries({ queryKey: ["atendimentos"] });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  // Exclui o registro de atendimento humano (não afeta o paciente nem o bot)
+  const excluir = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("atendimentos_humanos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Atendimento excluído" });
       queryClient.invalidateQueries({ queryKey: ["atendimentos"] });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
@@ -212,6 +236,38 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
                           Finalizar
                         </Button>
                       )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            disabled={excluir.isPending}
+                            title="Excluir atendimento"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir atendimento?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação remove permanentemente o registro de atendimento humano de{" "}
+                              <span className="font-medium">{a.paciente_nome ?? a.paciente_telefone}</span>.
+                              Não afeta o paciente nem o status do bot.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => excluir.mutate(a.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
