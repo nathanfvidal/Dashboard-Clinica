@@ -238,7 +238,7 @@ export function ListaPacientes() {
                 <TableCell className="font-mono text-xs">{formatarTelefone(p.telefone)}</TableCell>
                 <TableCell>
                   {telefonesComAgenda?.has(p.telefone) ? (
-                    <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400">
+                    <Badge className="bg-primary/15 text-primary hover:bg-primary/20">
                       Agendado
                     </Badge>
                   ) : (
