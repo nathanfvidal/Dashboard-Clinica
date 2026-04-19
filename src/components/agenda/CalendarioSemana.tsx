@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, eachDayOfInterval, endOfWeek, format, isSameDay, isToday, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
+import { ChevronLeft, ChevronRight, GripVertical, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AgendamentoLite {
   id: string;
@@ -38,6 +40,9 @@ const PX_POR_HORA = 56; // h-14
 const PX_POR_SLOT = (PX_POR_HORA * SLOT_MIN) / 60; // 28px
 // Duração default por agendamento (a tabela ainda não tem coluna de duração).
 const DURACAO_DEFAULT_MIN = 30;
+// Limite de lanes visíveis lado a lado — acima disso vira pílula "+N consultas"
+// pra manter cada card legível mesmo em horários muito cheios.
+const MAX_LANES = 3;
 
 // Cor da borda lateral do card por status — mais legível em alta densidade.
 function corBordaStatus(status?: string | null): string {
@@ -68,14 +73,27 @@ interface AgendamentoComLane extends AgendamentoLite {
   totalLanes: number;
 }
 
+/** Pílula de overflow — agrupa cards excedentes em um único slot horário. */
+interface OverflowSlot {
+  /** Minuto inicial do slot (alinhado ao início mais antigo do grupo). */
+  iniMin: number;
+  /** Lista completa dos agendamentos deste slot (incluindo os já visíveis). */
+  agendamentos: AgendamentoComLane[];
+  /** Quantos cards ficaram escondidos (= agendamentos.length - MAX_LANES). */
+  excedente: number;
+}
+
 /**
  * Algoritmo de lanes — distribui horizontalmente cards que se sobrepõem no tempo.
  * 1. Ordena por (início, -fim).
- * 2. Para cada agendamento, atribui à 1ª lane livre (cuja última saída <= entrada atual).
- * 3. Após distribuir, agrupa por colisão transitiva e calcula totalLanes do grupo.
+ * 2. Tenta encaixar nas primeiras MAX_LANES lanes; o que sobrar entra em overflow.
+ * 3. Agrupa overflow por slot de 30min para uma pílula "+N" única.
  */
-function distribuirEmLanes(items: AgendamentoLite[]): AgendamentoComLane[] {
-  if (items.length === 0) return [];
+function distribuirEmLanes(items: AgendamentoLite[]): {
+  visiveis: AgendamentoComLane[];
+  overflows: OverflowSlot[];
+} {
+  if (items.length === 0) return { visiveis: [], overflows: [] };
 
   const enriquecidos = items
     .map((a) => {
@@ -91,8 +109,11 @@ function distribuirEmLanes(items: AgendamentoLite[]): AgendamentoComLane[] {
     })
     .sort((a, b) => a.iniMin - b.iniMin || b.fimMin - a.fimMin);
 
-  // Atribui lanes
-  const lanesFim: number[] = []; // fim do último evento em cada lane
+  // Atribui lanes — limitando a MAX_LANES; quem não couber vira overflow.
+  const lanesFim: number[] = [];
+  const visiveis: AgendamentoComLane[] = [];
+  const transbordados: AgendamentoComLane[] = [];
+
   for (const ag of enriquecidos) {
     let alocado = false;
     for (let i = 0; i < lanesFim.length; i++) {
@@ -104,28 +125,59 @@ function distribuirEmLanes(items: AgendamentoLite[]): AgendamentoComLane[] {
       }
     }
     if (!alocado) {
-      ag.laneIndex = lanesFim.length;
-      lanesFim.push(ag.fimMin);
+      if (lanesFim.length < MAX_LANES) {
+        ag.laneIndex = lanesFim.length;
+        lanesFim.push(ag.fimMin);
+      } else {
+        transbordados.push(ag);
+        continue;
+      }
     }
+    visiveis.push(ag);
   }
 
-  // Agrupa por colisão transitiva — varre em ordem de início e fecha grupo
-  // sempre que o próximo evento começa após o fim acumulado do grupo atual.
+  // Calcula totalLanes por grupo de colisão (apenas visíveis)
+  const ordenados = [...visiveis].sort((a, b) => a.iniMin - b.iniMin);
   let i = 0;
-  while (i < enriquecidos.length) {
-    let fimGrupo = enriquecidos[i].fimMin;
+  while (i < ordenados.length) {
+    let fimGrupo = ordenados[i].fimMin;
     let j = i + 1;
-    while (j < enriquecidos.length && enriquecidos[j].iniMin < fimGrupo) {
-      fimGrupo = Math.max(fimGrupo, enriquecidos[j].fimMin);
+    while (j < ordenados.length && ordenados[j].iniMin < fimGrupo) {
+      fimGrupo = Math.max(fimGrupo, ordenados[j].fimMin);
       j++;
     }
-    const grupo = enriquecidos.slice(i, j);
-    const total = Math.max(...grupo.map((g) => g.laneIndex)) + 1;
+    const grupo = ordenados.slice(i, j);
+    const total = Math.min(MAX_LANES, Math.max(...grupo.map((g) => g.laneIndex)) + 1);
     for (const g of grupo) g.totalLanes = total;
     i = j;
   }
 
-  return enriquecidos;
+  // Agrupa overflow por slot de 30min (alinhado ao início) para uma pílula única.
+  const overflowPorSlot = new Map<number, AgendamentoComLane[]>();
+  for (const t of transbordados) {
+    const slotMin = Math.floor(t.iniMin / SLOT_MIN) * SLOT_MIN;
+    const arr = overflowPorSlot.get(slotMin) ?? [];
+    arr.push(t);
+    overflowPorSlot.set(slotMin, arr);
+  }
+
+  // Para cada slot com overflow, montamos a lista completa (visíveis + escondidos)
+  // pra exibir tudo no popover; excedente = só os escondidos.
+  const overflows: OverflowSlot[] = [];
+  for (const [slotMin, escondidos] of overflowPorSlot) {
+    const visiveisDoSlot = visiveis.filter(
+      (v) => Math.floor(v.iniMin / SLOT_MIN) * SLOT_MIN === slotMin,
+    );
+    overflows.push({
+      iniMin: slotMin,
+      agendamentos: [...visiveisDoSlot, ...escondidos].sort((a, b) =>
+        (a.medico ?? "").localeCompare(b.medico ?? ""),
+      ),
+      excedente: escondidos.length,
+    });
+  }
+
+  return { visiveis, overflows };
 }
 
 /**
@@ -203,7 +255,7 @@ export function CalendarioSemana({
       arr.push(a);
       bruto.set(a.data_consulta, arr);
     }
-    const map = new Map<string, AgendamentoComLane[]>();
+    const map = new Map<string, ReturnType<typeof distribuirEmLanes>>();
     for (const [dia, lista] of bruto) {
       map.set(dia, distribuirEmLanes(lista));
     }
@@ -324,7 +376,7 @@ export function CalendarioSemana({
           {/* Colunas dos dias */}
           {dias.map((d) => {
             const chave = format(d, "yyyy-MM-dd");
-            const items = porDia.get(chave) ?? [];
+            const items = porDia.get(chave) ?? { visiveis: [], overflows: [] };
             return (
               <div
                 key={chave}
@@ -398,8 +450,8 @@ export function CalendarioSemana({
                     );
                   })}
 
-                {/* Cards de agendamento — agora com lanes calculadas */}
-                {items.map((a) => {
+                {/* Cards visíveis (até MAX_LANES por slot) */}
+                {items.visiveis.map((a) => {
                   const hh = Math.floor(a.iniMin / 60);
                   if (hh < HORA_INICIO || hh > HORA_FIM) return null;
                   const top = ((a.iniMin - HORA_INICIO * 60) / 60) * PX_POR_HORA;
@@ -410,7 +462,6 @@ export function CalendarioSemana({
                   const arrastandoEste = arrastando === a.id;
                   const larguraPct = 100 / a.totalLanes;
                   const leftPct = a.laneIndex * larguraPct;
-                  // Quando há muitas lanes a coluna fica estreita — esconde o grip e o nome.
                   const muitasLanes = a.totalLanes >= 3;
                   return (
                     <div
@@ -464,6 +515,86 @@ export function CalendarioSemana({
                         </span>
                       )}
                     </div>
+                  );
+                })}
+
+                {/* Pílulas de overflow — agrupam excedentes por slot de 30min.
+                    Renderizadas como tira fina logo abaixo dos cards visíveis. */}
+                {items.overflows.map((ov) => {
+                  const hh = Math.floor(ov.iniMin / 60);
+                  if (hh < HORA_INICIO || hh > HORA_FIM) return null;
+                  const top = ((ov.iniMin - HORA_INICIO * 60) / 60) * PX_POR_HORA;
+                  const altura = Math.max(
+                    18,
+                    (DURACAO_DEFAULT_MIN / 60) * PX_POR_HORA - 2,
+                  );
+                  const horaLabel = `${String(hh).padStart(2, "0")}:${String(ov.iniMin % 60).padStart(2, "0")}`;
+                  return (
+                    <Popover key={`ov-${ov.iniMin}`}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(
+                            "absolute z-25 flex items-center justify-center gap-1 overflow-hidden rounded-md border border-dashed border-primary/40 bg-primary/15 px-1.5 text-[0.65rem] font-semibold text-primary backdrop-blur-sm transition-all",
+                            "hover:z-40 hover:bg-primary/25 hover:shadow-md",
+                          )}
+                          style={{
+                            top: `${top + altura - 14}px`,
+                            height: "14px",
+                            left: "2px",
+                            right: "2px",
+                          }}
+                          title={`${ov.agendamentos.length} consultas às ${horaLabel}`}
+                        >
+                          <Users className="h-2.5 w-2.5" />
+                          <span className="tabular-nums">+{ov.excedente} mais</span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="center"
+                        side="right"
+                        className="w-72 border-border/40 bg-popover/90 p-0 backdrop-blur-2xl"
+                      >
+                        <div className="border-b border-border/30 px-3 py-2">
+                          <p className="text-xs font-semibold tracking-tight">
+                            {ov.agendamentos.length} consultas às{" "}
+                            <span className="tabular-nums">{horaLabel}</span>
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {format(d, "EEEE, dd 'de' MMM", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <ScrollArea className="max-h-72">
+                          <ul className="divide-y divide-border/20">
+                            {ov.agendamentos.map((a) => (
+                              <li key={a.id}>
+                                <button
+                                  type="button"
+                                  onClick={() => onSelecionarAgendamento(a.id)}
+                                  className={cn(
+                                    "flex w-full items-start gap-2 border-l-[3px] px-3 py-2 text-left transition-colors hover:bg-accent/30",
+                                    corBordaStatus(a.status),
+                                  )}
+                                >
+                                  <span className="mt-0.5 shrink-0 font-mono text-[10px] font-semibold tabular-nums">
+                                    {a.horario.slice(0, 5)}
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-xs font-medium">
+                                      {a.medico}
+                                    </span>
+                                    <span className="block truncate text-[10px] text-muted-foreground">
+                                      {a.paciente_nome ?? "sem nome"}
+                                      {a.especialidade ? ` · ${a.especialidade}` : ""}
+                                    </span>
+                                  </span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </ScrollArea>
+                      </PopoverContent>
+                    </Popover>
                   );
                 })}
               </div>
