@@ -4,8 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pencil, Search, Trash2, UserRound } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -207,7 +205,6 @@ export function ListaPacientes() {
               <TableHead>Nome</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead className="w-32">Agendamento</TableHead>
-              <TableHead className="w-40">Última interação</TableHead>
               <TableHead className="w-28 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -216,7 +213,7 @@ export function ListaPacientes() {
               <>
                 {Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={5}>
+                    <TableCell colSpan={4}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
@@ -225,7 +222,7 @@ export function ListaPacientes() {
             )}
             {!isLoading && filtrados.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                   {busca ? "Nenhum paciente encontrado." : "Nenhum paciente cadastrado ainda."}
                 </TableCell>
               </TableRow>
@@ -248,14 +245,6 @@ export function ListaPacientes() {
                       Sem agenda
                     </span>
                   )}
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {p.ultima_interacao
-                    ? formatDistanceToNow(new Date(p.ultima_interacao), {
-                        locale: ptBR,
-                        addSuffix: true,
-                      })
-                    : "—"}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
