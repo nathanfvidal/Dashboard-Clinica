@@ -2,6 +2,29 @@
 
 Última atualização: 2026-04-19 04:48 UTC
 
+## Rodada 6 — testes contra v10 ATIVO (rodados via MCP) ✅ SUCESSO TOTAL
+
+| # | Mensagem | Telefone | Exec | Resultado |
+|---|---|---|---|---|
+| 1 | "oi" | 5583912340401 | 9930 | mensagem gravada ✅ |
+| 2 | "quero pediatria de tarde" | 5583912340402 | 9931 | mensagem gravada ✅ |
+| 3 | "quero falar com humano urgente, reclamação séria" | 5583912340403 | 9932 | **`atendimentos_humanos` recebeu linha** ✅ |
+
+### Prova SQL pós-rodada 6
+
+```sql
+SELECT paciente_telefone, status, motivo, paciente_nome
+FROM atendimentos_humanos
+WHERE paciente_telefone='5583912340403';
+-- 5583912340403 | aguardando | Reclamação séria sobre atendimento | Teste V10 Tres ✅
+
+SELECT telefone, nome, status_sessao FROM pacientes
+WHERE telefone='5583912340403';
+-- 5583912340403 | Teste V10 Tres | humano ✅
+```
+
+**Conclusão:** o upsert prévio em `pacientes` (FK) + set de `status_sessao='humano'` no v10 resolveu o HTTP 409 do v9. O bot ficará pausado para esse paciente nas próximas mensagens.
+
 ## Rodada 5 — testes contra v9 ATIVO (rodados via MCP)
 
 | # | Mensagem | Telefone | Exec | Resultado |
