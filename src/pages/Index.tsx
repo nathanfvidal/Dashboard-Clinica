@@ -30,9 +30,12 @@ const Index = () => {
   const { data: agendamentos = [], isLoading: loadingAg } = useQuery({
     queryKey: ["agendamentos"],
     queryFn: async () => {
+      // Excluímos slots "disponivel" da query — só agendamentos reais importam no dashboard.
+      // Isso evita estourar o limite de linhas e perder os agendamentos confirmados.
       const { data, error } = await supabase
         .from("agendamentos")
         .select("*")
+        .neq("status", "disponivel")
         .order("data_consulta", { ascending: false })
         .limit(500);
       if (error) throw error;
