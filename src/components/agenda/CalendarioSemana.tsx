@@ -255,7 +255,7 @@ export function CalendarioSemana({
       arr.push(a);
       bruto.set(a.data_consulta, arr);
     }
-    const map = new Map<string, AgendamentoComLane[]>();
+    const map = new Map<string, ReturnType<typeof distribuirEmLanes>>();
     for (const [dia, lista] of bruto) {
       map.set(dia, distribuirEmLanes(lista));
     }
