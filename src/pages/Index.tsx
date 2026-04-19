@@ -10,6 +10,7 @@ import { ChartAgendamentos } from "@/components/dashboard/ChartAgendamentos";
 import { ChartEspecialidades } from "@/components/dashboard/ChartEspecialidades";
 import { ListaAtendimentos } from "@/components/dashboard/ListaAtendimentos";
 import { ListaFeedbacks } from "@/components/dashboard/ListaFeedbacks";
+import { ListaProximosAgendamentos } from "@/components/dashboard/ListaProximosAgendamentos";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -237,6 +238,12 @@ const Index = () => {
           <ChartEspecialidades agendamentos={agendamentosFiltrados} />
         )}
       </div>
+
+      {loadingAg && agendamentos.length === 0 ? (
+        <Skeleton className="h-[300px] w-full rounded-xl" />
+      ) : (
+        <ListaProximosAgendamentos agendamentos={agendamentosFiltrados} />
+      )}
 
       {loadingAt && atendimentos.length === 0 ? (
         <Skeleton className="h-[260px] w-full rounded-xl" />
