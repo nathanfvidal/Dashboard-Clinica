@@ -450,8 +450,8 @@ export function CalendarioSemana({
                     );
                   })}
 
-                {/* Cards de agendamento — agora com lanes calculadas */}
-                {items.map((a) => {
+                {/* Cards visíveis (até MAX_LANES por slot) */}
+                {items.visiveis.map((a) => {
                   const hh = Math.floor(a.iniMin / 60);
                   if (hh < HORA_INICIO || hh > HORA_FIM) return null;
                   const top = ((a.iniMin - HORA_INICIO * 60) / 60) * PX_POR_HORA;
@@ -462,7 +462,6 @@ export function CalendarioSemana({
                   const arrastandoEste = arrastando === a.id;
                   const larguraPct = 100 / a.totalLanes;
                   const leftPct = a.laneIndex * larguraPct;
-                  // Quando há muitas lanes a coluna fica estreita — esconde o grip e o nome.
                   const muitasLanes = a.totalLanes >= 3;
                   return (
                     <div
@@ -516,6 +515,86 @@ export function CalendarioSemana({
                         </span>
                       )}
                     </div>
+                  );
+                })}
+
+                {/* Pílulas de overflow — agrupam excedentes por slot de 30min.
+                    Renderizadas como tira fina logo abaixo dos cards visíveis. */}
+                {items.overflows.map((ov) => {
+                  const hh = Math.floor(ov.iniMin / 60);
+                  if (hh < HORA_INICIO || hh > HORA_FIM) return null;
+                  const top = ((ov.iniMin - HORA_INICIO * 60) / 60) * PX_POR_HORA;
+                  const altura = Math.max(
+                    18,
+                    (DURACAO_DEFAULT_MIN / 60) * PX_POR_HORA - 2,
+                  );
+                  const horaLabel = `${String(hh).padStart(2, "0")}:${String(ov.iniMin % 60).padStart(2, "0")}`;
+                  return (
+                    <Popover key={`ov-${ov.iniMin}`}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(
+                            "absolute z-25 flex items-center justify-center gap-1 overflow-hidden rounded-md border border-dashed border-primary/40 bg-primary/15 px-1.5 text-[0.65rem] font-semibold text-primary backdrop-blur-sm transition-all",
+                            "hover:z-40 hover:bg-primary/25 hover:shadow-md",
+                          )}
+                          style={{
+                            top: `${top + altura - 14}px`,
+                            height: "14px",
+                            left: "2px",
+                            right: "2px",
+                          }}
+                          title={`${ov.agendamentos.length} consultas às ${horaLabel}`}
+                        >
+                          <Users className="h-2.5 w-2.5" />
+                          <span className="tabular-nums">+{ov.excedente} mais</span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="center"
+                        side="right"
+                        className="w-72 border-border/40 bg-popover/90 p-0 backdrop-blur-2xl"
+                      >
+                        <div className="border-b border-border/30 px-3 py-2">
+                          <p className="text-xs font-semibold tracking-tight">
+                            {ov.agendamentos.length} consultas às{" "}
+                            <span className="tabular-nums">{horaLabel}</span>
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {format(d, "EEEE, dd 'de' MMM", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <ScrollArea className="max-h-72">
+                          <ul className="divide-y divide-border/20">
+                            {ov.agendamentos.map((a) => (
+                              <li key={a.id}>
+                                <button
+                                  type="button"
+                                  onClick={() => onSelecionarAgendamento(a.id)}
+                                  className={cn(
+                                    "flex w-full items-start gap-2 border-l-[3px] px-3 py-2 text-left transition-colors hover:bg-accent/30",
+                                    corBordaStatus(a.status),
+                                  )}
+                                >
+                                  <span className="mt-0.5 shrink-0 font-mono text-[10px] font-semibold tabular-nums">
+                                    {a.horario.slice(0, 5)}
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-xs font-medium">
+                                      {a.medico}
+                                    </span>
+                                    <span className="block truncate text-[10px] text-muted-foreground">
+                                      {a.paciente_nome ?? "sem nome"}
+                                      {a.especialidade ? ` · ${a.especialidade}` : ""}
+                                    </span>
+                                  </span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </ScrollArea>
+                      </PopoverContent>
+                    </Popover>
                   );
                 })}
               </div>
