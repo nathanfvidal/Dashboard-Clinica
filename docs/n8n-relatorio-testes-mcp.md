@@ -1,6 +1,71 @@
 # Relatório de testes via MCP — workflow `Atendimento - Clinica Medica (IA First)`
 
-Última atualização: 2026-04-19 04:36 UTC
+Última atualização: 2026-04-19 04:48 UTC
+
+## Rodada 5 — testes contra v9 ATIVO (rodados via MCP)
+
+| # | Mensagem | Telefone | Exec | Resultado |
+|---|---|---|---|---|
+| 1 | "oi" | 5583912340301 | 9925 | mensagem gravada ✅ |
+| 2 | "quero pediatria de tarde" | 5583912340302 | 9926 | tools rodaram (ver SQL) |
+| 3 | "quero falar com humano urgente" | 5583912340303 | 9927 | **TDZ morreu**, mas agora **HTTP 409** |
+
+### Bug TDZ MORREU — prova literal
+
+Antes (v8): `"erro":"Cannot access 'motivo' before initialization"`
+Agora (v9): `"erro":"Request failed with status code 409"`
+
+A tool **executou**, leu `A.motivo` corretamente, montou body e fez POST. Bateu em FK.
+
+### Causa raiz HTTP 409 no v9
+
+```sql
+SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint
+WHERE conrelid = 'public.atendimentos_humanos'::regclass;
+```
+Resultado:
+```
+atendimentos_humanos_paciente_telefone_fkey  →  FOREIGN KEY (paciente_telefone) REFERENCES pacientes(telefone)
+```
+
+O paciente `5583912340303` **não existia** em `pacientes` no momento do INSERT em `atendimentos_humanos`. PostgREST devolve **409 Conflict** quando viola FK. Mesma armadilha vale para `solicitacoes` (tem a mesma FK).
+
+### SQL de validação pós-rodada 5
+
+- `mensagens` (3 IN com `tipo='texto'`): ✅
+- `atendimentos_humanos` para os 3 telefones: vazio ❌ (esperado, 409)
+- `pacientes`: só `5583912340301` foi inserido (pelo node "Supabase - Buscar Paciente" que faz upsert do paciente do teste 1)
+
+## Correção v10 — `Atendimento_-_Clinica_Medica_IA_First_v10.json`
+
+**Mudança cirúrgica:** `Tool Transferir Humano` e `Tool Criar Solicitacao` passam a fazer **upsert do paciente antes** do INSERT principal (satisfaz FK). `transferir_humano` ainda marca `pacientes.status_sessao='humano'` no mesmo upsert (pausa o bot).
+
+```js
+// 1. Upsert paciente (FK)
+await _post(SUPABASE_URL + '/rest/v1/pacientes?on_conflict=telefone',
+  { telefone: tel, nome: A.paciente_nome, status_sessao: 'humano' },
+  'resolution=merge-duplicates,return=representation');
+// 2. Insert atendimento humano
+await _post(SUPABASE_URL + '/rest/v1/atendimentos_humanos',
+  { paciente_telefone: tel, paciente_nome: A.paciente_nome, motivo: A.motivo, status: 'aguardando' },
+  'return=representation');
+```
+
+## Como aplicar v10
+
+1. n8n → **Deactivate** workflow ativo
+2. **Import from File** → `Atendimento_-_Clinica_Medica_IA_First_v10.json`
+3. **Activate**
+
+## Validação esperada após v10
+
+- Teste 3 → `atendimentos_humanos` recebe linha com `status='aguardando'`, `motivo` preenchido.
+- `pacientes.status_sessao='humano'` para o telefone do teste.
+- Próxima mensagem desse paciente cai no branch "humano" do `IF Bot Ativo?` (sem chamar Sofia).
+
+---
+
+## Histórico anterior
 Workflow ID: `eqqEnl042R9NZN_UWToot`
 
 ## Status atual dos bugs
