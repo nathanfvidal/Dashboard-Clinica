@@ -40,6 +40,9 @@ const PX_POR_HORA = 56; // h-14
 const PX_POR_SLOT = (PX_POR_HORA * SLOT_MIN) / 60; // 28px
 // Duração default por agendamento (a tabela ainda não tem coluna de duração).
 const DURACAO_DEFAULT_MIN = 30;
+// Limite de lanes visíveis lado a lado — acima disso vira pílula "+N consultas"
+// pra manter cada card legível mesmo em horários muito cheios.
+const MAX_LANES = 3;
 
 // Cor da borda lateral do card por status — mais legível em alta densidade.
 function corBordaStatus(status?: string | null): string {
