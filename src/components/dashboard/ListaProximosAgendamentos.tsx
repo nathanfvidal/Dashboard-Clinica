@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarCheck, CheckCircle2, XCircle } from "lucide-react";
+import { CalendarCheck, CalendarClock, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { RemarcarAgendamentoDialog } from "./RemarcarAgendamentoDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -37,6 +38,7 @@ type Agendamento = {
   paciente_nome: string | null;
   paciente_telefone: string;
   status: string | null;
+  medico_id: string | null;
 };
 
 interface Props {
@@ -47,6 +49,7 @@ export function ListaProximosAgendamentos({ agendamentos }: Props) {
   const queryClient = useQueryClient();
   const [filtroData, setFiltroData] = useState<string>("");
   const [filtroStatus, setFiltroStatus] = useState<string>("ativos");
+  const [agendamentoRemarcar, setAgendamentoRemarcar] = useState<Agendamento | null>(null);
 
   const mutate = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -187,6 +190,16 @@ export function ListaProximosAgendamentos({ agendamentos }: Props) {
                           <Button
                             size="icon"
                             variant="ghost"
+                            className="h-8 w-8 text-primary hover:bg-primary/15"
+                            disabled={isFinal || mutate.isPending}
+                            onClick={() => setAgendamentoRemarcar(a)}
+                            title="Remarcar"
+                          >
+                            <CalendarClock className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
                             className="h-8 w-8 text-destructive hover:bg-destructive/15"
                             disabled={isFinal || mutate.isPending}
                             onClick={() => mutate.mutate({ id: a.id, status: "cancelado" })}
@@ -204,6 +217,11 @@ export function ListaProximosAgendamentos({ agendamentos }: Props) {
           </div>
         )}
       </CardContent>
+      <RemarcarAgendamentoDialog
+        agendamento={agendamentoRemarcar}
+        open={!!agendamentoRemarcar}
+        onOpenChange={(o) => !o && setAgendamentoRemarcar(null)}
+      />
     </Card>
   );
 }
