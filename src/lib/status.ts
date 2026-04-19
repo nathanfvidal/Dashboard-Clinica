@@ -16,6 +16,7 @@ export const STATUS_AGENDAMENTO: { value: string; label: string }[] = [
   { value: "cancelado", label: "Cancelado" },
   { value: "finalizado", label: "Finalizado" },
   { value: "remarcado", label: "Remarcado" },
+  { value: "disponivel", label: "Disponível (slots livres)" },
 ];
 
 export function statusBadgeClass(status?: string | null): string {
