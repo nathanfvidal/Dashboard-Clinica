@@ -4,7 +4,6 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { statusBadgeClass } from "@/lib/status";
 
 interface AgendamentoLite {
   id: string;
@@ -37,10 +36,101 @@ const HORA_FIM = 20;
 const SLOT_MIN = 30;
 const PX_POR_HORA = 56; // h-14
 const PX_POR_SLOT = (PX_POR_HORA * SLOT_MIN) / 60; // 28px
+// Duração default por agendamento (a tabela ainda não tem coluna de duração).
+const DURACAO_DEFAULT_MIN = 30;
+
+// Cor da borda lateral do card por status — mais legível em alta densidade.
+function corBordaStatus(status?: string | null): string {
+  switch ((status ?? "").toLowerCase()) {
+    case "confirmado":
+      return "border-l-[hsl(var(--accent-emerald))] bg-[hsl(var(--accent-emerald)/0.10)] text-foreground";
+    case "pendente":
+    case "aguardando":
+      return "border-l-[hsl(var(--accent-amber))] bg-[hsl(var(--accent-amber)/0.10)] text-foreground";
+    case "cancelado":
+      return "border-l-destructive bg-destructive/10 text-foreground line-through opacity-70";
+    case "finalizado":
+      return "border-l-muted-foreground bg-muted/40 text-muted-foreground";
+    case "remarcado":
+      return "border-l-[hsl(var(--accent-violet))] bg-[hsl(var(--accent-violet)/0.10)] text-foreground";
+    default:
+      return "border-l-primary bg-primary/10 text-foreground";
+  }
+}
+
+interface AgendamentoComLane extends AgendamentoLite {
+  /** Início em minutos contados a partir da meia-noite. */
+  iniMin: number;
+  fimMin: number;
+  /** Faixa vertical atribuída pelo algoritmo de lanes. */
+  laneIndex: number;
+  /** Total de lanes no grupo de colisão a que este card pertence. */
+  totalLanes: number;
+}
+
+/**
+ * Algoritmo de lanes — distribui horizontalmente cards que se sobrepõem no tempo.
+ * 1. Ordena por (início, -fim).
+ * 2. Para cada agendamento, atribui à 1ª lane livre (cuja última saída <= entrada atual).
+ * 3. Após distribuir, agrupa por colisão transitiva e calcula totalLanes do grupo.
+ */
+function distribuirEmLanes(items: AgendamentoLite[]): AgendamentoComLane[] {
+  if (items.length === 0) return [];
+
+  const enriquecidos = items
+    .map((a) => {
+      const [h, m] = a.horario.split(":").map(Number);
+      const iniMin = (h || 0) * 60 + (m || 0);
+      return {
+        ...a,
+        iniMin,
+        fimMin: iniMin + DURACAO_DEFAULT_MIN,
+        laneIndex: 0,
+        totalLanes: 1,
+      } as AgendamentoComLane;
+    })
+    .sort((a, b) => a.iniMin - b.iniMin || b.fimMin - a.fimMin);
+
+  // Atribui lanes
+  const lanesFim: number[] = []; // fim do último evento em cada lane
+  for (const ag of enriquecidos) {
+    let alocado = false;
+    for (let i = 0; i < lanesFim.length; i++) {
+      if (lanesFim[i] <= ag.iniMin) {
+        ag.laneIndex = i;
+        lanesFim[i] = ag.fimMin;
+        alocado = true;
+        break;
+      }
+    }
+    if (!alocado) {
+      ag.laneIndex = lanesFim.length;
+      lanesFim.push(ag.fimMin);
+    }
+  }
+
+  // Agrupa por colisão transitiva — varre em ordem de início e fecha grupo
+  // sempre que o próximo evento começa após o fim acumulado do grupo atual.
+  let i = 0;
+  while (i < enriquecidos.length) {
+    let fimGrupo = enriquecidos[i].fimMin;
+    let j = i + 1;
+    while (j < enriquecidos.length && enriquecidos[j].iniMin < fimGrupo) {
+      fimGrupo = Math.max(fimGrupo, enriquecidos[j].fimMin);
+      j++;
+    }
+    const grupo = enriquecidos.slice(i, j);
+    const total = Math.max(...grupo.map((g) => g.laneIndex)) + 1;
+    for (const g of grupo) g.totalLanes = total;
+    i = j;
+  }
+
+  return enriquecidos;
+}
 
 /**
  * Visão semanal — colunas por dia, linhas por hora cheia.
- * Cards de agendamento posicionados absolutamente conforme horário.
+ * Cards posicionados absolutamente conforme horário, com lanes para evitar sobreposição.
  * Suporta drag-and-drop com snap de 30min para remarcar.
  */
 export function CalendarioSemana({
@@ -60,7 +150,6 @@ export function CalendarioSemana({
   // Relógio atualizado a cada minuto para a linha "agora"
   const [agora, setAgora] = useState<Date>(() => new Date());
   useEffect(() => {
-    // Sincroniza a primeira atualização com a virada do minuto e depois mantém ritmo de 60s
     const msAteProximoMinuto = 60_000 - (Date.now() % 60_000);
     let intervalo: ReturnType<typeof setInterval> | undefined;
     const timeout = setTimeout(() => {
@@ -90,7 +179,6 @@ export function CalendarioSemana({
     const totalMin = (HORA_FIM - HORA_INICIO) * 60;
     if (minutosDesdeInicio < 0 || minutosDesdeInicio > totalMin) return;
     const topAgora = (minutosDesdeInicio / 60) * PX_POR_HORA;
-    // Centraliza a linha na viewport do scroll, com pequena folga superior
     const alvoScroll = Math.max(0, topAgora - container.clientHeight / 2);
     container.scrollTo({ top: alvoScroll, behavior: "smooth" });
   }, [dias]);
@@ -107,13 +195,17 @@ export function CalendarioSemana({
     return Array.from({ length: total }, (_, i) => i);
   }, []);
 
-  // Agrupa agendamentos por dia (YYYY-MM-DD) pra lookup rápido
+  // Agrupa agendamentos por dia + aplica algoritmo de lanes
   const porDia = useMemo(() => {
-    const map = new Map<string, AgendamentoLite[]>();
+    const bruto = new Map<string, AgendamentoLite[]>();
     for (const a of agendamentos) {
-      const arr = map.get(a.data_consulta) ?? [];
+      const arr = bruto.get(a.data_consulta) ?? [];
       arr.push(a);
-      map.set(a.data_consulta, arr);
+      bruto.set(a.data_consulta, arr);
+    }
+    const map = new Map<string, AgendamentoComLane[]>();
+    for (const [dia, lista] of bruto) {
+      map.set(dia, distribuirEmLanes(lista));
     }
     return map;
   }, [agendamentos]);
@@ -133,7 +225,6 @@ export function CalendarioSemana({
     if (!arrastando || !onMoverAgendamento) return;
     const novoHorario = slotParaHorario(slot);
     const ag = agendamentos.find((a) => a.id === arrastando);
-    // Evita disparo se nada mudou
     if (ag && ag.data_consulta === data && ag.horario === novoHorario) {
       setArrastando(null);
       setAlvo(null);
@@ -240,12 +331,14 @@ export function CalendarioSemana({
                 className="relative border-l border-border/30"
                 style={{ height: `${horas.length * PX_POR_HORA}px` }}
               >
-                {/* Linhas de hora cheia (visual) */}
+                {/* Linhas de hora cheia + meia-hora (sutis) */}
                 {horas.map((h) => (
-                  <div key={h} className="h-14 border-b border-border/30" />
+                  <div key={h} className="relative h-14 border-b border-border/30">
+                    <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-border/15" />
+                  </div>
                 ))}
 
-                {/* Linha indicadora da hora atual — apenas o traço dentro da coluna do dia de hoje */}
+                {/* Linha indicadora da hora atual */}
                 {(() => {
                   if (!isSameDay(d, agora)) return null;
                   const minutosDesdeInicio =
@@ -265,7 +358,7 @@ export function CalendarioSemana({
                   );
                 })()}
 
-                {/* Drop zones de 30 em 30 min — sobrepostas, invisíveis até hover durante drag */}
+                {/* Drop zones de 30 em 30 min */}
                 {onMoverAgendamento &&
                   slotsDrop.map((slot) => {
                     const ativo =
@@ -305,12 +398,20 @@ export function CalendarioSemana({
                     );
                   })}
 
-                {/* Cards de agendamento */}
+                {/* Cards de agendamento — agora com lanes calculadas */}
                 {items.map((a) => {
-                  const [hh, mm] = a.horario.split(":").map(Number);
+                  const hh = Math.floor(a.iniMin / 60);
                   if (hh < HORA_INICIO || hh > HORA_FIM) return null;
-                  const top = (hh - HORA_INICIO) * PX_POR_HORA + (mm / 60) * PX_POR_HORA;
+                  const top = ((a.iniMin - HORA_INICIO * 60) / 60) * PX_POR_HORA;
+                  const altura = Math.max(
+                    24,
+                    (DURACAO_DEFAULT_MIN / 60) * PX_POR_HORA - 2,
+                  );
                   const arrastandoEste = arrastando === a.id;
+                  const larguraPct = 100 / a.totalLanes;
+                  const leftPct = a.laneIndex * larguraPct;
+                  // Quando há muitas lanes a coluna fica estreita — esconde o grip e o nome.
+                  const muitasLanes = a.totalLanes >= 3;
                   return (
                     <div
                       key={a.id}
@@ -335,24 +436,33 @@ export function CalendarioSemana({
                         }
                       }}
                       className={cn(
-                        "group absolute left-1 right-1 z-20 flex items-start gap-1 truncate rounded-md border px-1.5 py-1 text-left text-[0.7rem] font-medium shadow-sm transition-all",
-                        "hover:scale-[1.02] hover:shadow-md",
-                        statusBadgeClass(a.status),
+                        "group absolute z-20 flex flex-col gap-0.5 overflow-hidden rounded-md border-l-[3px] border border-border/40 px-1.5 py-1 text-left text-[0.7rem] font-medium shadow-sm backdrop-blur-sm transition-all",
+                        "hover:z-40 hover:shadow-lg hover:ring-1 hover:ring-primary/40",
+                        corBordaStatus(a.status),
                         onMoverAgendamento && "cursor-grab active:cursor-grabbing",
                         arrastandoEste && "opacity-40",
                       )}
-                      style={{ top: `${top}px`, minHeight: "32px" }}
-                      title={`${a.horario.slice(0, 5)} ${a.medico} — ${a.paciente_nome ?? "sem nome"}`}
+                      style={{
+                        top: `${top}px`,
+                        height: `${altura}px`,
+                        left: `calc(${leftPct}% + 2px)`,
+                        width: `calc(${larguraPct}% - 4px)`,
+                      }}
+                      title={`${a.horario.slice(0, 5)} — ${a.medico} — ${a.paciente_nome ?? "sem nome"}${a.especialidade ? ` (${a.especialidade})` : ""}`}
                     >
-                      {onMoverAgendamento && (
-                        <GripVertical className="mt-0.5 h-3 w-3 shrink-0 opacity-40 transition-opacity group-hover:opacity-80" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="tabular-nums">{a.horario.slice(0, 5)}</div>
-                        <div className="truncate opacity-90">
-                          {a.paciente_nome ?? a.medico}
-                        </div>
+                      <div className="flex items-center gap-1 leading-none">
+                        {onMoverAgendamento && !muitasLanes && (
+                          <GripVertical className="h-3 w-3 shrink-0 opacity-30 transition-opacity group-hover:opacity-70" />
+                        )}
+                        <span className="truncate text-[0.68rem] font-semibold tabular-nums">
+                          {a.horario.slice(0, 5)}
+                        </span>
                       </div>
+                      {!muitasLanes && (
+                        <span className="truncate text-[0.65rem] leading-tight opacity-85">
+                          {a.paciente_nome ?? a.medico}
+                        </span>
+                      )}
                     </div>
                   );
                 })}

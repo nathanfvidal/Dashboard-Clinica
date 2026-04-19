@@ -42,8 +42,9 @@ export function ChartEspecialidades({ agendamentos }: Props) {
       <GlassCardContent>
         <div className="h-64">
           {data.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Sem dados ainda
+            <div className="flex h-full flex-col items-center justify-center gap-1 px-6 text-center">
+              <p className="text-sm font-medium text-muted-foreground">Nenhuma especialidade ainda</p>
+              <p className="text-xs text-muted-foreground/70">A distribuição vai aparecer quando houver agendamentos com especialidade definida.</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">

@@ -32,6 +32,12 @@ export function ChartAgendamentos({ agendamentos }: Props) {
       </GlassCardHeader>
       <GlassCardContent>
         <div className="h-64">
+          {data.every((d) => d.total === 0) ? (
+            <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
+              <p className="text-sm font-medium text-muted-foreground">Sem agendamentos no período</p>
+              <p className="text-xs text-muted-foreground/70">Os dados aparecem assim que o bot ou a recepção criarem consultas.</p>
+            </div>
+          ) : (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
               <defs>
@@ -63,6 +69,7 @@ export function ChartAgendamentos({ agendamentos }: Props) {
               />
             </AreaChart>
           </ResponsiveContainer>
+          )}
         </div>
       </GlassCardContent>
     </GlassCard>

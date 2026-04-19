@@ -121,6 +121,8 @@ export function CalendarioMes({
           const hoje = isToday(dia);
           const visiveis = items.slice(0, 3);
           const restantes = items.length - visiveis.length;
+          // Densidade visual — barra superior cresce com o nº de agendamentos (até 8 = 100%).
+          const densidadePct = Math.min(100, (items.length / 8) * 100);
 
           return (
             <button
@@ -133,6 +135,14 @@ export function CalendarioMes({
                 !noMes && "bg-background/20 text-muted-foreground/50",
               )}
             >
+              {/* Indicador de densidade no topo da célula */}
+              {items.length > 0 && noMes && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 top-0 h-[2px] bg-primary/60"
+                  style={{ width: `${densidadePct}%` }}
+                />
+              )}
               <div className="flex items-center justify-between px-1">
                 <span
                   className={cn(
@@ -144,7 +154,7 @@ export function CalendarioMes({
                   {format(dia, "d")}
                 </span>
                 {items.length > 0 && (
-                  <span className="text-[0.65rem] font-medium text-muted-foreground tabular-nums">
+                  <span className="rounded-full bg-muted/60 px-1.5 text-[0.6rem] font-semibold text-muted-foreground tabular-nums">
                     {items.length}
                   </span>
                 )}
@@ -160,17 +170,21 @@ export function CalendarioMes({
                       onSelecionarAgendamento(a.id);
                     }}
                     className={cn(
-                      "truncate rounded-md border px-1.5 py-0.5 text-[0.7rem] font-medium",
+                      "flex items-center gap-1.5 overflow-hidden rounded-md border-l-[3px] border border-border/30 px-1.5 py-0.5 text-[0.7rem]",
                       statusBadgeClass(a.status),
                     )}
                     title={`${a.horario.slice(0, 5)} — ${a.medico} — ${a.paciente_nome ?? "sem nome"}`}
                   >
-                    <span className="tabular-nums">{a.horario.slice(0, 5)}</span>{" "}
-                    {a.paciente_nome ?? a.medico}
+                    <span className="shrink-0 font-mono text-[0.65rem] font-semibold tabular-nums opacity-90">
+                      {a.horario.slice(0, 5)}
+                    </span>
+                    <span className="truncate font-medium">
+                      {a.paciente_nome ?? a.medico}
+                    </span>
                   </span>
                 ))}
                 {restantes > 0 && (
-                  <span className="px-1.5 text-[0.65rem] text-muted-foreground">
+                  <span className="px-1.5 text-[0.65rem] font-medium text-muted-foreground hover:text-foreground">
                     +{restantes} mais
                   </span>
                 )}
