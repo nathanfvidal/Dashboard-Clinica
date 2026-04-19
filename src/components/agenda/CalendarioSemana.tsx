@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, eachDayOfInterval, endOfWeek, format, isSameDay, isToday, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
+import { ChevronLeft, ChevronRight, GripVertical, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AgendamentoLite {
   id: string;
