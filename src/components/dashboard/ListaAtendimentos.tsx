@@ -77,6 +77,19 @@ export function ListaAtendimentos({ atendimentos }: { atendimentos: Atendimento[
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  // Exclui o registro de atendimento humano (não afeta o paciente nem o bot)
+  const excluir = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("atendimentos_humanos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Atendimento excluído" });
+      queryClient.invalidateQueries({ queryKey: ["atendimentos"] });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
   // Pausa (humano) ou reativa (ia) o bot para o paciente
   const alternarBot = useMutation({
     mutationFn: async ({ telefone, novoStatus }: { telefone: string; novoStatus: "ia" | "humano" }) => {
