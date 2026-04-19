@@ -15,7 +15,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { statusBadgeClass } from "@/lib/status";
 import { format } from "date-fns";
-import { Bot, BotOff, CheckCircle2 } from "lucide-react";
+import { Bot, BotOff, CheckCircle2, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Atendimento {
   id: string;
