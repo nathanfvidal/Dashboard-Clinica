@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppShell from "./components/layout/AppShell";
 import Index from "./pages/Index.tsx";
-import Agenda from "./pages/Agenda.tsx";
 import Cadastros from "./pages/Cadastros.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -20,7 +19,6 @@ const App = () => (
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<Index />} />
-            <Route path="/agenda" element={<Agenda />} />
             <Route path="/cadastros" element={<Cadastros />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
