@@ -18,15 +18,9 @@ export default function AppShell() {
     <div className="min-h-screen text-foreground">
       <header className="sticky top-0 z-30 border-b border-border/40 bg-background/40 backdrop-blur-2xl backdrop-saturate-150">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
-              <Activity className="h-5 w-5" />
-              <span className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-white/10" />
-            </div>
-            <div>
-              <h1 className="text-base font-semibold leading-tight tracking-tight">Clínica Médica</h1>
-              <p className="text-xs text-primary/70">Painel de atendimento</p>
-            </div>
+          <div>
+            <h1 className="text-base font-semibold leading-tight tracking-tight">Clínica Médica</h1>
+            <p className="text-xs text-primary/70">Painel de atendimento</p>
           </div>
           <nav className="flex items-center gap-1">
             {navItems.map((item) => (
