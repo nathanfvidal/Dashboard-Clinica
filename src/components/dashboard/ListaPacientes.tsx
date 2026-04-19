@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Search, Trash2, UserRound } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pencil, Search, Trash2, UserRound } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -68,6 +69,8 @@ export function ListaPacientes() {
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<Paciente | null>(null);
   const [removendo, setRemovendo] = useState<Paciente | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const [porPagina, setPorPagina] = useState(10);
   const queryClient = useQueryClient();
 
   const { data: pacientes, isLoading } = useQuery({
@@ -77,7 +80,7 @@ export function ListaPacientes() {
         .from("pacientes")
         .select("id, telefone, nome, status_sessao, created_at, ultima_interacao")
         .order("ultima_interacao", { ascending: false, nullsFirst: false })
-        .limit(500);
+        .limit(1000);
       if (error) throw error;
       return (data ?? []) as Paciente[];
     },
@@ -147,6 +150,17 @@ export function ListaPacientes() {
     );
   }, [pacientes, busca]);
 
+  // Paginação derivada do filtro
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / porPagina));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const inicio = (paginaAtual - 1) * porPagina;
+  const visiveis = filtrados.slice(inicio, inicio + porPagina);
+
+  // Reset pra página 1 quando busca/tamanho mudam
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, porPagina]);
+
   return (
     <GlassCard spotlight className="overflow-hidden p-0">
       <div className="flex flex-col gap-3 border-b border-border/40 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -200,7 +214,7 @@ export function ListaPacientes() {
                 </TableCell>
               </TableRow>
             )}
-            {filtrados.map((p) => (
+            {visiveis.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">
                   {p.nome ?? <span className="text-muted-foreground">Sem nome</span>}
@@ -242,6 +256,87 @@ export function ListaPacientes() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Rodapé com paginação */}
+      {filtrados.length > 0 && (
+        <div className="flex flex-col gap-3 border-t border-border/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>
+              Mostrando <span className="font-medium text-foreground">{inicio + 1}</span>–
+              <span className="font-medium text-foreground">
+                {Math.min(inicio + porPagina, filtrados.length)}
+              </span>{" "}
+              de <span className="font-medium text-foreground">{filtrados.length}</span>
+            </span>
+            <span className="hidden sm:inline">·</span>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="pac-por-pagina" className="text-xs">
+                Por página
+              </Label>
+              <Select
+                value={String(porPagina)}
+                onValueChange={(v) => setPorPagina(Number(v))}
+              >
+                <SelectTrigger id="pac-por-pagina" className="h-8 w-[72px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 25, 50, 100].map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPagina(1)}
+              disabled={paginaAtual === 1}
+              aria-label="Primeira página"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPagina((p) => Math.max(1, p - 1))}
+              disabled={paginaAtual === 1}
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2 text-xs tabular-nums text-muted-foreground">
+              {paginaAtual} / {totalPaginas}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              disabled={paginaAtual === totalPaginas}
+              aria-label="Próxima página"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPagina(totalPaginas)}
+              disabled={paginaAtual === totalPaginas}
+              aria-label="Última página"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Diálogo de edição */}
       <Dialog open={!!editando} onOpenChange={(o) => !o && fecharEditar()}>
