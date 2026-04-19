@@ -73,14 +73,27 @@ interface AgendamentoComLane extends AgendamentoLite {
   totalLanes: number;
 }
 
+/** Pílula de overflow — agrupa cards excedentes em um único slot horário. */
+interface OverflowSlot {
+  /** Minuto inicial do slot (alinhado ao início mais antigo do grupo). */
+  iniMin: number;
+  /** Lista completa dos agendamentos deste slot (incluindo os já visíveis). */
+  agendamentos: AgendamentoComLane[];
+  /** Quantos cards ficaram escondidos (= agendamentos.length - MAX_LANES). */
+  excedente: number;
+}
+
 /**
  * Algoritmo de lanes — distribui horizontalmente cards que se sobrepõem no tempo.
  * 1. Ordena por (início, -fim).
- * 2. Para cada agendamento, atribui à 1ª lane livre (cuja última saída <= entrada atual).
- * 3. Após distribuir, agrupa por colisão transitiva e calcula totalLanes do grupo.
+ * 2. Tenta encaixar nas primeiras MAX_LANES lanes; o que sobrar entra em overflow.
+ * 3. Agrupa overflow por slot de 30min para uma pílula "+N" única.
  */
-function distribuirEmLanes(items: AgendamentoLite[]): AgendamentoComLane[] {
-  if (items.length === 0) return [];
+function distribuirEmLanes(items: AgendamentoLite[]): {
+  visiveis: AgendamentoComLane[];
+  overflows: OverflowSlot[];
+} {
+  if (items.length === 0) return { visiveis: [], overflows: [] };
 
   const enriquecidos = items
     .map((a) => {
@@ -96,8 +109,11 @@ function distribuirEmLanes(items: AgendamentoLite[]): AgendamentoComLane[] {
     })
     .sort((a, b) => a.iniMin - b.iniMin || b.fimMin - a.fimMin);
 
-  // Atribui lanes
-  const lanesFim: number[] = []; // fim do último evento em cada lane
+  // Atribui lanes — limitando a MAX_LANES; quem não couber vira overflow.
+  const lanesFim: number[] = [];
+  const visiveis: AgendamentoComLane[] = [];
+  const transbordados: AgendamentoComLane[] = [];
+
   for (const ag of enriquecidos) {
     let alocado = false;
     for (let i = 0; i < lanesFim.length; i++) {
@@ -109,28 +125,59 @@ function distribuirEmLanes(items: AgendamentoLite[]): AgendamentoComLane[] {
       }
     }
     if (!alocado) {
-      ag.laneIndex = lanesFim.length;
-      lanesFim.push(ag.fimMin);
+      if (lanesFim.length < MAX_LANES) {
+        ag.laneIndex = lanesFim.length;
+        lanesFim.push(ag.fimMin);
+      } else {
+        transbordados.push(ag);
+        continue;
+      }
     }
+    visiveis.push(ag);
   }
 
-  // Agrupa por colisão transitiva — varre em ordem de início e fecha grupo
-  // sempre que o próximo evento começa após o fim acumulado do grupo atual.
+  // Calcula totalLanes por grupo de colisão (apenas visíveis)
+  const ordenados = [...visiveis].sort((a, b) => a.iniMin - b.iniMin);
   let i = 0;
-  while (i < enriquecidos.length) {
-    let fimGrupo = enriquecidos[i].fimMin;
+  while (i < ordenados.length) {
+    let fimGrupo = ordenados[i].fimMin;
     let j = i + 1;
-    while (j < enriquecidos.length && enriquecidos[j].iniMin < fimGrupo) {
-      fimGrupo = Math.max(fimGrupo, enriquecidos[j].fimMin);
+    while (j < ordenados.length && ordenados[j].iniMin < fimGrupo) {
+      fimGrupo = Math.max(fimGrupo, ordenados[j].fimMin);
       j++;
     }
-    const grupo = enriquecidos.slice(i, j);
-    const total = Math.max(...grupo.map((g) => g.laneIndex)) + 1;
+    const grupo = ordenados.slice(i, j);
+    const total = Math.min(MAX_LANES, Math.max(...grupo.map((g) => g.laneIndex)) + 1);
     for (const g of grupo) g.totalLanes = total;
     i = j;
   }
 
-  return enriquecidos;
+  // Agrupa overflow por slot de 30min (alinhado ao início) para uma pílula única.
+  const overflowPorSlot = new Map<number, AgendamentoComLane[]>();
+  for (const t of transbordados) {
+    const slotMin = Math.floor(t.iniMin / SLOT_MIN) * SLOT_MIN;
+    const arr = overflowPorSlot.get(slotMin) ?? [];
+    arr.push(t);
+    overflowPorSlot.set(slotMin, arr);
+  }
+
+  // Para cada slot com overflow, montamos a lista completa (visíveis + escondidos)
+  // pra exibir tudo no popover; excedente = só os escondidos.
+  const overflows: OverflowSlot[] = [];
+  for (const [slotMin, escondidos] of overflowPorSlot) {
+    const visiveisDoSlot = visiveis.filter(
+      (v) => Math.floor(v.iniMin / SLOT_MIN) * SLOT_MIN === slotMin,
+    );
+    overflows.push({
+      iniMin: slotMin,
+      agendamentos: [...visiveisDoSlot, ...escondidos].sort((a, b) =>
+        (a.medico ?? "").localeCompare(b.medico ?? ""),
+      ),
+      excedente: escondidos.length,
+    });
+  }
+
+  return { visiveis, overflows };
 }
 
 /**
