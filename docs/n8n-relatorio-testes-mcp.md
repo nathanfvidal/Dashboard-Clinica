@@ -1,91 +1,120 @@
 # Relatório de testes via MCP — workflow `Atendimento - Clinica Medica (IA First)`
 
-Data: 2026-04-18
+Última atualização: 2026-04-19 04:30 UTC
 Workflow ID: `eqqEnl042R9NZN_UWToot`
-Workflow ativo no n8n: **v3** (44 nós, 4 triggers, ativo).
+Workflow ativo no n8n: **v6** (importado pelo usuário, confirmado via `get_workflow_details` — versionId `fbe223bd-e131-4f25-adea-446d6e9095b3`).
 
-## Testes executados via MCP `execute_workflow`
+## Resumo executivo
 
-| # | Mensagem simulada | Telefone | Execução | Resultado real |
+| Bug | Status no v6 |
+|---|---|
+| `mensagens_tipo_check` violado | ✅ **CORRIGIDO** (provado por SQL) |
+| `fetch is not defined` nas tools | ✅ **CORRIGIDO** (provado pelo log da execução 9914) |
+| Tools de args (`buscar_agenda`, `confirmar_agendamento`, etc) leem args errado | ❌ **NOVO BUG ENCONTRADO** — patch v7 abaixo |
+| `Digitando...` retorna 400 na Evolution API | ⚠️ corrigido no v7 com `onError:continueRegularOutput` + delay reduzido |
+
+## Testes executados (rodada 2 — contra v6)
+
+| # | Mensagem | Telefone | Execution ID | Resultado |
 |---|---|---|---|---|
-| 1 | "oi" | 5583912340099 | 9771 | **falhou** — Sofia respondeu "não consigo listar as especialidades" |
-| 2 | "quero pediatria de tarde" | 5583912340002 | 9772 | **falhou** — mesmo padrão |
-| 3 | "quero falar com humano" | 5583912340003 | 9773 | **falhou** — agente quebrou tool |
+| 1 | "oi" | 5583912340099 | 9913 | mensagem gravada, Sofia respondeu pedindo dados |
+| 2 | "quero pediatria de tarde" | 5583912340002 | 9914 | mensagem gravada, listar_especialidades **OK**, buscar_agenda_por_periodo **falhou por leitura de args** |
+| 3 | "quero falar com humano urgente" | 5583912340003 | 9916 | mensagem gravada, transferir_humano **falhou pelo mesmo motivo** |
 
-Em **TODAS** as execuções o fluxo entrou no `Log Mensagem In` e bombou.
-
-## Bugs encontrados
-
-### Bug 1 — `mensagens_tipo_check` violado (CRÍTICO, mata o fluxo)
-
-Erro real do n8n no `Log Mensagem In`:
-```
-400 - "code":"23514", "message":"new row for relation \"mensagens\" violates check constraint \"mensagens_tipo_check\""
-```
-
-Causa: o nó **`Verificar se Bot Ativo`** descarta o campo `tipo` (que `Extrair Dados da Mensagem` produz como `'texto'` ou `'audio'`). O `Log Mensagem In` envia `"tipo": "{{ $json.tipo }}"` que vira string vazia, violando o CHECK do Postgres (`tipo IN ('texto','audio','imagem','sistema')`).
-
-Apesar de o `Log` continuar (`onError: continueRegularOutput`), o histórico de mensagens **nunca é gravado** — então não temos rastro nenhum no banco e a memória da Sofia fica órfã.
-
-### Bug 2 — `fetch is not defined` em TODAS as 9 tools (CRÍTICO, "não agenda nada")
-
-Erro real capturado na execução 9771:
-```
-Tool: [{"response":"{\"success\":false,\"erro\":\"fetch is not defined\"}"}]
-```
-
-Causa: o ambiente do `@n8n/n8n-nodes-langchain.toolCode` **não expõe `fetch` global** (não é Deno, não é browser). As 9 tools (`buscar_paciente`, `salvar_paciente`, `listar_especialidades`, `buscar_agenda`, `buscar_agenda_por_periodo`, `confirmar_agendamento`, `registrar_feedback`, `criar_solicitacao`, `transferir_humano`) usam `await fetch(...)` direto e **falham 100% das vezes**.
-
-Resultado prático: a Sofia chama `listar_especialidades`, recebe erro, e responde "não consigo listar as especialidades agora". Por isso nunca agenda.
-
-A API correta nesse contexto é `this.helpers.httpRequest({ method, url, headers, body, json })`.
-
-### Bug 3 (menor) — `Digitando...` com payload inválido
-
-Erro: `400 - "response":{"message":["[object Object]"]}` na chamada do Evolution API quando o paciente vem com `tipo` vazio (efeito colateral do bug 1). Some quando bug 1 estiver corrigido.
-
-## Status do banco (validado por SQL real)
-
-Tudo OK — não é gargalo:
-- 6 especialidades ativas: Cardiologia, Clínica Geral, Dermatologia, Ginecologia, Ortopedia, Pediatria
-- 6 médicos ativos, todos com horários cadastrados
-- 2.264 slots disponíveis entre hoje e 2026-05-18
-
-## Correção aplicada — v6
-
-Arquivo: `/mnt/documents/Atendimento_-_Clinica_Medica_IA_First_v6.json`
-
-Mudanças:
-1. **`Verificar se Bot Ativo`**: passa a propagar `tipo` (default `'texto'`) e `messageId`.
-2. **9 tools reescritas** trocando todo `await fetch(...)` por `await this.helpers.httpRequest({...})`. Inclui:
-   - normalização NFD/lowercase/trim para nomes de especialidade;
-   - validação de `missingFields` antes de chamar Supabase;
-   - fallback retornando `especialidades_disponiveis` quando o nome não bate;
-   - `Tool Confirmar Agendamento` só faz PATCH em slot existente com `status='disponivel'`;
-   - `Tool Transferir Humano` notifica o admin `5583999915242` via Evolution.
-3. Diagnóstico contagem final: **0** ocorrências de `fetch(` nas tools, **44** chamadas `this.helpers.httpRequest`.
-
-## Como aplicar
-
-1. https://n8n.nateksoft.com/ → workflow `Atendimento - Clinica Medica (IA First) v3` → Settings → **Deactivate**.
-2. Menu → **Import from File** → `Atendimento_-_Clinica_Medica_IA_First_v6.json`.
-3. Reabrir o nó **`Extrair Dados da Mensagem`** e colar a Groq key no `Bearer COLE_SUA_GROQ_KEY_AQUI` (só pra áudio funcionar).
-4. Conferir credencial do `Google Gemini Chat Model`.
-5. **Activate**.
-
-## Validação pós-import
+### Prova SQL — bug do `tipo` morreu
 
 ```sql
--- mensagens dos últimos minutos
-SELECT direcao, tipo, agente, conteudo, created_at
-FROM mensagens ORDER BY created_at DESC LIMIT 20;
+SELECT direcao, tipo, agente, paciente_telefone, conteudo, created_at
+FROM mensagens WHERE created_at > '2026-04-19 02:00:02'
+ORDER BY created_at;
+```
+Retorno real:
+```
+direcao=in tipo=texto agente=sofia 5583912340099 "oi"            04:30:26
+direcao=in tipo=texto agente=sofia 5583912340002 "quero pediatria de tarde" 04:30:37
+direcao=in tipo=texto agente=sofia 5583912340003 "quero falar com humano urgente" 04:30:47
+```
+Antes: ZERO inserts (constraint quebrava). Agora: **3 de 3** com `tipo='texto'` válido.
 
--- slots ocupados após teste de confirmação
-SELECT data_consulta, horario, especialidade, medico, status, paciente_telefone
-FROM agendamentos WHERE status='confirmado' ORDER BY created_at DESC LIMIT 10;
+### Prova log — `fetch is not defined` morreu
 
--- handoffs criados
-SELECT * FROM atendimentos_humanos ORDER BY created_at DESC LIMIT 5;
+Execução 9914 (`Tool Listar Especialidades`), citação literal do retorno:
+```
+Tool: [{"response":"{\"success\":true,\"total\":6,\"especialidades\":[
+  {\"nome\":\"Cardiologia\"...},{\"nome\":\"Pediatria\"...}
+]}"}]
+```
+Antes (v3): `{"response":"{\"success\":false,\"erro\":\"fetch is not defined\"}"}`. Agora retorna 6 especialidades reais do Supabase.
+
+## Bug NOVO descoberto no v6 — leitura de args nas tools
+
+### Sintoma
+Na execução 9914, a Sofia chamou:
+```
+Calling Tool Buscar Agenda por Periodo with input: {"especialidade":"Pediatria","turno":"tarde","id":"..."}
+```
+Mas a tool retornou:
+```
+{"success":false,"missingFields":["especialidade","turno"],"mensagem":"Informe especialidade e turno."}
 ```
 
-Critério de aceite: enviar "quero pediatria" → Sofia chama `listar_especialidades` (sucesso) → chama `buscar_agenda` → devolve até 5 horários reais → paciente escolhe → `confirmar_agendamento` ocupa o slot → linha `confirmado` aparece em `agendamentos`.
+### Causa raiz
+O `@n8n/n8n-nodes-langchain.toolCode` **não injeta os argumentos como variáveis JS soltas** (ex.: `especialidade`, `turno`). O padrão usado nas 8 tools com args:
+```js
+const espIn = (typeof especialidade !== 'undefined' && especialidade) ? ... : '';
+```
+sempre cai em `undefined` porque `especialidade` não existe no escopo do jsCode. Os args chegam dentro do objeto `query` (ou pelo `$input.first().json`).
+
+Por isso `Listar Especialidades` (tool sem args) funcionou e **as 8 tools que precisam de input falham**.
+
+### Tools afetadas
+`buscar_paciente`, `salvar_paciente`, `buscar_agenda`, `buscar_agenda_por_periodo`, `confirmar_agendamento`, `registrar_feedback`, `criar_solicitacao`, `transferir_humano`.
+
+## Correção aplicada — v7
+
+Arquivo: `/mnt/documents/Atendimento_-_Clinica_Medica_IA_First_v7.json`
+
+Mudanças nas 8 tools — prelude injetado logo após `try {`:
+```js
+let __args = {};
+try {
+  if (typeof query === 'object' && query) __args = query;
+  else if (typeof query === 'string' && query.trim().startsWith('{')) __args = JSON.parse(query);
+  else if (typeof $input !== 'undefined') {
+    const it = $input.first ? $input.first() : null;
+    if (it && it.json) __args = it.json;
+  }
+} catch(_) {}
+var especialidade = (typeof especialidade !== 'undefined' && especialidade) ? especialidade : __args.especialidade;
+var turno = ...;
+// (e assim por diante para cada arg da tool)
+```
+O resto do código original permanece — as variáveis nomeadas agora caem para `__args.X` quando `undefined`.
+
+Outras mudanças:
+- **`Digitando...`**: `delay` reduzido de 15000 → 1200 (Evolution rejeita delay alto com `[object Object]`) e `onError: continueRegularOutput` para nunca quebrar o fluxo.
+
+Diagnóstico final do v7:
+- 0 ocorrências de `fetch(` nas tools
+- 44 chamadas `this.helpers.httpRequest`
+- 8 tools com prelude `extrai args injetados`
+
+## Como aplicar v7
+
+1. n8n → workflow ativo → **Deactivate**.
+2. **Import from File** → `Atendimento_-_Clinica_Medica_IA_First_v7.json`.
+3. Reconferir credencial do `Google Gemini Chat Model` e a Groq key no `Extrair Dados da Mensagem` (só pra áudio).
+4. **Activate**.
+
+## Validação esperada após v7
+
+Repetir teste 2: paciente diz "quero pediatria de tarde". Resultado esperado:
+1. `listar_especialidades` → 6 especialidades (já funciona)
+2. `buscar_agenda_por_periodo({especialidade:"Pediatria", turno:"tarde"})` → retorna até 5 horários reais (corrige no v7)
+3. paciente escolhe → `confirmar_agendamento` ocupa o slot
+
+```sql
+-- após paciente confirmar
+SELECT data_consulta, horario, especialidade, medico, status, paciente_telefone
+FROM agendamentos WHERE status='confirmado' ORDER BY created_at DESC LIMIT 5;
+```
