@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { CalendarCheck, Users, MessageSquare, Star } from "lucide-react";
-import { format } from "date-fns";
+import { format, subDays, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -12,6 +12,7 @@ import { ListaAtendimentos } from "@/components/dashboard/ListaAtendimentos";
 import { ListaFeedbacks } from "@/components/dashboard/ListaFeedbacks";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { STATUS_AGENDAMENTO } from "@/lib/status";
 import { staggerContainer, staggerItem } from "@/components/motion/PageTransition";
 
@@ -25,7 +26,7 @@ const Index = () => {
   useRealtimeTable("pacientes", ["pacientes"]);
   useRealtimeTable("feedbacks", ["feedbacks"]);
 
-  const { data: agendamentos = [] } = useQuery({
+  const { data: agendamentos = [], isLoading: loadingAg } = useQuery({
     queryKey: ["agendamentos"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -38,7 +39,7 @@ const Index = () => {
     },
   });
 
-  const { data: atendimentos = [] } = useQuery({
+  const { data: atendimentos = [], isLoading: loadingAt } = useQuery({
     queryKey: ["atendimentos"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -54,13 +55,13 @@ const Index = () => {
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("pacientes").select("id");
+      const { data, error } = await supabase.from("pacientes").select("id,created_at");
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  const { data: feedbacks = [] } = useQuery({
+  const { data: feedbacks = [], isLoading: loadingFb } = useQuery({
     queryKey: ["feedbacks"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -87,12 +88,41 @@ const Index = () => {
   }, [agendamentos, filtroStatus, filtroEspecialidade]);
 
   const hojeStr = format(new Date(), "yyyy-MM-dd");
+  const ontemStr = format(subDays(new Date(), 1), "yyyy-MM-dd");
   const agendHoje = agendamentosFiltrados.filter((a) => a.data_consulta === hojeStr).length;
+  const agendOntem = agendamentosFiltrados.filter((a) => a.data_consulta === ontemStr).length;
   const filaHumana = atendimentos.filter((a) => a.status !== "finalizado").length;
   const mediaFeedback =
     feedbacks.length > 0
       ? (feedbacks.reduce((s, f) => s + (f.nota ?? 0), 0) / feedbacks.length).toFixed(1)
       : "—";
+
+  // Delta % hoje vs ontem (null quando ontem=0 pra evitar divisão por zero)
+  const deltaHoje =
+    agendOntem > 0 ? ((agendHoje - agendOntem) / agendOntem) * 100 : null;
+
+  // Pacientes novos esta semana vs semana passada
+  const inicioSemana = startOfWeek(new Date(), { weekStartsOn: 0 });
+  const fimSemana = endOfWeek(new Date(), { weekStartsOn: 0 });
+  const inicioSemanaPassada = subDays(inicioSemana, 7);
+  const fimSemanaPassada = subDays(fimSemana, 7);
+  const novosEstaSemana = pacientes.filter((p: { created_at?: string | null }) => {
+    if (!p.created_at) return false;
+    return isWithinInterval(new Date(p.created_at), { start: inicioSemana, end: fimSemana });
+  }).length;
+  const novosSemanaPassada = pacientes.filter((p: { created_at?: string | null }) => {
+    if (!p.created_at) return false;
+    return isWithinInterval(new Date(p.created_at), {
+      start: inicioSemanaPassada,
+      end: fimSemanaPassada,
+    });
+  }).length;
+  const deltaPacientes =
+    novosSemanaPassada > 0
+      ? ((novosEstaSemana - novosSemanaPassada) / novosSemanaPassada) * 100
+      : null;
+
+  const carregandoTudo = loadingAg && loadingAt && loadingFb && agendamentos.length === 0;
 
   return (
     <div className="space-y-6">
@@ -137,41 +167,87 @@ const Index = () => {
         </div>
       </div>
 
-      <motion.div
-        className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        variants={staggerContainer}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.div variants={staggerItem} className="h-full">
-          <KpiCard label="Agendamentos hoje" value={agendHoje} icon={CalendarCheck} accent="primary" />
+      {carregandoTudo ? (
+        <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[112px] rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <motion.div
+          className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.div variants={staggerItem} className="h-full">
+            <KpiCard
+              label="Agendamentos hoje"
+              value={agendHoje}
+              icon={CalendarCheck}
+              accent="primary"
+              delta={deltaHoje}
+              deltaLabel="vs ontem"
+              hint={deltaHoje === null ? "Sem base ontem" : `vs ontem (${agendOntem})`}
+            />
+          </motion.div>
+          <motion.div variants={staggerItem} className="h-full">
+            <KpiCard
+              label="Pacientes cadastrados"
+              value={pacientes.length}
+              icon={Users}
+              accent="cyan"
+              delta={deltaPacientes}
+              deltaLabel="novos vs semana passada"
+              hint={`${novosEstaSemana} nesta semana`}
+            />
+          </motion.div>
+          <motion.div variants={staggerItem} className="h-full">
+            <KpiCard
+              label="Fila humana"
+              value={filaHumana}
+              icon={MessageSquare}
+              accent="amber"
+              hint={filaHumana === 0 ? "Tudo limpo" : "aguardando atendente"}
+            />
+          </motion.div>
+          <motion.div variants={staggerItem} className="h-full">
+            <KpiCard
+              label="Feedback médio"
+              value={mediaFeedback}
+              icon={Star}
+              accent="emerald"
+              hint={`${feedbacks.length} avaliações`}
+            />
+          </motion.div>
         </motion.div>
-        <motion.div variants={staggerItem} className="h-full">
-          <KpiCard label="Pacientes cadastrados" value={pacientes.length} icon={Users} accent="cyan" />
-        </motion.div>
-        <motion.div variants={staggerItem} className="h-full">
-          <KpiCard label="Fila humana" value={filaHumana} icon={MessageSquare} accent="amber" />
-        </motion.div>
-        <motion.div variants={staggerItem} className="h-full">
-          <KpiCard
-            label="Feedback médio"
-            value={mediaFeedback}
-            icon={Star}
-            accent="emerald"
-            hint={`${feedbacks.length} avaliações`}
-          />
-        </motion.div>
-      </motion.div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ChartAgendamentos agendamentos={agendamentosFiltrados} />
+          {loadingAg && agendamentos.length === 0 ? (
+            <Skeleton className="h-[336px] w-full rounded-xl" />
+          ) : (
+            <ChartAgendamentos agendamentos={agendamentosFiltrados} />
+          )}
         </div>
-        <ChartEspecialidades agendamentos={agendamentosFiltrados} />
+        {loadingAg && agendamentos.length === 0 ? (
+          <Skeleton className="h-[336px] w-full rounded-xl" />
+        ) : (
+          <ChartEspecialidades agendamentos={agendamentosFiltrados} />
+        )}
       </div>
 
-      <ListaAtendimentos atendimentos={atendimentos} />
-      <ListaFeedbacks feedbacks={feedbacks} />
+      {loadingAt && atendimentos.length === 0 ? (
+        <Skeleton className="h-[260px] w-full rounded-xl" />
+      ) : (
+        <ListaAtendimentos atendimentos={atendimentos} />
+      )}
+      {loadingFb && feedbacks.length === 0 ? (
+        <Skeleton className="h-[200px] w-full rounded-xl" />
+      ) : (
+        <ListaFeedbacks feedbacks={feedbacks} />
+      )}
     </div>
   );
 };
