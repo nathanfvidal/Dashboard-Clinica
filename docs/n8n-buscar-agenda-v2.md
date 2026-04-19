@@ -142,7 +142,8 @@ try {
     return true;
   });
 
-  // Agrupa por (data + medico)
+  // Agrupa por (data + medico) — IMPORTANTE: cada slot leva o id do registro
+  // pra confirmar_agendamento conseguir fazer o UPDATE depois
   const grupos = new Map();
   for (const r of filtrados) {
     const key = r.data_consulta + '|' + (r.medico_id || r.medico);
@@ -157,19 +158,23 @@ try {
         _all: [],
       });
     }
-    grupos.get(key)._all.push(r.horario.slice(0, 5));
+    grupos.get(key)._all.push({ id: r.id, hora: r.horario.slice(0, 5) });
   }
 
   // Limita a 6 horários por grupo
   const dias = Array.from(grupos.values()).map(g => {
     const all = g._all;
+    const top = all.slice(0, 6);
     return {
       data: g.data,
       data_br: g.data_br,
       dia_semana: g.dia_semana,
       medico: g.medico,
       medico_id: g.medico_id,
-      horarios: all.slice(0, 6),
+      // Lista crua de horas pra Sofia exibir bonito
+      horarios: top.map(s => s.hora),
+      // Mapa hora -> id pra Sofia conseguir passar o id em confirmar_agendamento
+      slots: top, // [{ id, hora }]
       mais: Math.max(0, all.length - 6),
     };
   });
