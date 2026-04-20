@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EspecialidadesTab } from "@/components/cadastros/EspecialidadesTab";
 import { MedicosTab } from "@/components/cadastros/MedicosTab";
+import { ClientesTab } from "@/components/cadastros/ClientesTab";
 
 export default function Cadastros() {
   return (
@@ -17,12 +18,16 @@ export default function Cadastros() {
         <TabsList>
           <TabsTrigger value="especialidades">Especialidades</TabsTrigger>
           <TabsTrigger value="medicos">Médicos</TabsTrigger>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
         </TabsList>
         <TabsContent value="especialidades">
           <EspecialidadesTab />
         </TabsContent>
         <TabsContent value="medicos">
           <MedicosTab />
+        </TabsContent>
+        <TabsContent value="clientes">
+          <ClientesTab />
         </TabsContent>
       </Tabs>
     </div>

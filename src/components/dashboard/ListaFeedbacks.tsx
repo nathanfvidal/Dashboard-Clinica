@@ -25,7 +25,7 @@ function corPorNota(nota: number) {
 }
 
 function inicial(nome: string | null, telefone: string) {
-  const fonte = (nome ?? telefone).trim();
+  const fonte = (nome || telefone).trim();
   return fonte.charAt(0).toUpperCase() || "?";
 }
 
@@ -79,7 +79,7 @@ export function ListaFeedbacks({ feedbacks }: { feedbacks: Feedback[] }) {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate font-semibold tracking-tight">
-                        {f.paciente_nome ?? f.paciente_telefone}
+                        {f.paciente_nome || f.paciente_telefone}
                       </p>
                       <div className="mt-1">
                         <Estrelas nota={f.nota} />
