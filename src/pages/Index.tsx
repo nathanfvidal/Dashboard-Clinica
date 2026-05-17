@@ -260,7 +260,7 @@ const Index = () => {
       {loadingFb && feedbacks.length === 0 ? (
         <Skeleton className="h-[200px] w-full rounded-xl" />
       ) : (
-        <ListaFeedbacks feedbacks={feedbacks} />
+        <ListaFeedbacks feedbacks={feedbacks.slice(0, 10)} />
       )}
     </div>
   );
