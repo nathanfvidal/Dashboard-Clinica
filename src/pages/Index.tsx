@@ -69,11 +69,12 @@ const Index = () => {
   const { data: feedbacks = [], isLoading: loadingFb } = useQuery({
     queryKey: ["feedbacks"],
     queryFn: async () => {
+      // Buscamos todos os feedbacks para que a média e a contagem do KPI
+      // reflitam o total real (não apenas os últimos exibidos na lista).
       const { data, error } = await supabase
         .from("feedbacks")
         .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -259,7 +260,7 @@ const Index = () => {
       {loadingFb && feedbacks.length === 0 ? (
         <Skeleton className="h-[200px] w-full rounded-xl" />
       ) : (
-        <ListaFeedbacks feedbacks={feedbacks} />
+        <ListaFeedbacks feedbacks={feedbacks.slice(0, 10)} />
       )}
     </div>
   );
