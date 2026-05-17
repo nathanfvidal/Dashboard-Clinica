@@ -67,6 +67,18 @@
     --glass-border-strong: 160 55% 50% / 0.32;
     --glass-highlight: 0 0% 100% / 0.6;
 
+    /* Paleta de gráficos — verdes harmonizados + acentos de alto contraste */
+    --chart-1: 160 65% 38%;   /* verde médico (primary) */
+    --chart-2: 188 75% 42%;   /* ciano-teal */
+    --chart-3: 145 55% 48%;   /* verde sálvia claro */
+    --chart-4: 38 92% 50%;    /* âmbar — destaque quente */
+    --chart-5: 250 65% 60%;   /* violeta — contraste frio */
+    --chart-6: 350 72% 55%;   /* rosa clínico — alerta */
+    --chart-7: 175 60% 32%;   /* teal profundo */
+    --chart-8: 95 45% 45%;    /* verde-oliva */
+    --chart-grid: 160 25% 86%;
+    --chart-axis: 160 15% 38%;
+
     --sidebar-background: 150 30% 97%;
     --sidebar-foreground: 165 25% 22%;
     --sidebar-primary: 160 65% 38%;
