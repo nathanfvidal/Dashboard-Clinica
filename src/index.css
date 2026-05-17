@@ -102,6 +102,35 @@
     @apply tracking-tight;
     letter-spacing: -0.02em;
   }
+
+  /* Links nativos herdam a paleta verde primária */
+  a {
+    color: inherit;
+  }
+  a.link-primary,
+  .prose a {
+    color: hsl(var(--primary));
+    text-decoration-color: hsl(var(--primary) / 0.4);
+    text-underline-offset: 3px;
+    transition: color 0.2s ease, text-decoration-color 0.2s ease;
+  }
+  a.link-primary:hover,
+  .prose a:hover {
+    color: hsl(var(--primary-glow));
+    text-decoration-color: hsl(var(--primary-glow));
+  }
+
+  /* Seleção de texto em verde médico */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.25);
+    color: hsl(var(--foreground));
+  }
+
+  /* Foco acessível global em verde */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.6);
+    outline-offset: 2px;
+  }
 }
 
 /* ===== Glassmorphism utilities (versão clara) ===== */
