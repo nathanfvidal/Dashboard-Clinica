@@ -393,6 +393,10 @@ export type Database = {
           horario: string
         }[]
       }
+      remarcar_agendamento: {
+        Args: { p_antigo: string; p_novo: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
