@@ -81,36 +81,15 @@ export function RemarcarAgendamentoDialog({ agendamento, open, onOpenChange }: P
     return Array.from(map.entries());
   }, [slots]);
 
-  // Mutação atômica: libera o slot atual + ocupa o novo
+  // Remarcação atômica via RPC: preserva histórico (status='remarcado') + libera slot antigo + ocupa o novo
   const remarcar = useMutation({
     mutationFn: async () => {
       if (!agendamento || !slotEscolhido) throw new Error("Dados incompletos");
-
-      // 1. Libera o slot antigo (volta a ser 'disponivel')
-      const { error: errLiberar } = await supabase
-        .from("agendamentos")
-        .update({
-          status: "disponivel",
-          paciente_telefone: "disponivel",
-          paciente_nome: null,
-          feedback_solicitado_at: null,
-          lembrete_2h_enviado_at: null,
-          lembrete_d1_enviado_at: null,
-        })
-        .eq("id", agendamento.id);
-      if (errLiberar) throw errLiberar;
-
-      // 2. Ocupa o novo slot com os dados do paciente
-      const { error: errOcupar } = await supabase
-        .from("agendamentos")
-        .update({
-          status: "confirmado",
-          paciente_telefone: agendamento.paciente_telefone,
-          paciente_nome: agendamento.paciente_nome,
-        })
-        .eq("id", slotEscolhido)
-        .eq("status", "disponivel"); // garante que ninguém pegou nesse meio tempo
-      if (errOcupar) throw errOcupar;
+      const { error } = await supabase.rpc("remarcar_agendamento", {
+        p_antigo: agendamento.id,
+        p_novo: slotEscolhido,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
