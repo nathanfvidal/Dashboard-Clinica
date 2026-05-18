@@ -1,0 +1,1 @@
+DELETE FROM mensagens WHERE paciente_telefone='5583999915242'; DELETE FROM pacientes WHERE telefone='5583999915242';
