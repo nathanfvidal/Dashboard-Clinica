@@ -1,98 +1,74 @@
-# Plano — Ajustes Sofia + Agenda
+# Teste de Fogo — Fluxo Sofia (Clínica)
 
-Quatro problemas relatados, todos no workflow n8n + dados de agenda no Supabase. Nada de mudança no app React.
+Vou simular dois perfis de paciente disparando mensagens reais no webhook `https://n8n.nateksoft.com/webhook/clinica-webhook` e observando `mensagens`, `pacientes`, `agendamentos`, `solicitacoes` e `atendimentos_humanos` no Supabase entre cada passo. Cada turno espera ~4s pela resposta antes do próximo envio.
 
-## 1. Boas-vindas mais humana (sem ir direto para "confirmar nome")
+## Perfis
 
-Hoje a primeira mensagem do bot é `"Só para confirmar, vou agendar para Nathan. Está correto?"` — frio, presume agendamento e ignora cumprimento.
+**A — "Ana, paciente esperta"** (telefone `5583999915242`)
+Responde rápido, usa números do menu, formato de data correto, sabe o que quer.
 
-Reescrever o bloco **PRIMEIRO CONTATO** do `systemMessage` do nó **AI Agent Sofia** para seguir esta ordem:
+**B — "Sr. Joaquim, leigo"** (telefone de teste alternativo `5583988887777`)
+Erra digitação, manda áudio-texto longo ("oi minha filha, queria marcar um negócio com o doutor do coração"), responde por extenso ("primeira opção"), troca de ideia no meio, pergunta preço, pede pra falar com humano.
 
-1. Saudação contextual por horário (bom dia/boa tarde/boa noite — derivar do horário de Brasília).
-2. Se `buscar_paciente` retornar nome cadastrado → cumprimentar pelo nome ("Oi, Nathan! Boa tarde 👋") e **já mostrar o menu de opções** sem assumir agendamento.
-3. Se não houver nome → cumprimentar genericamente, perguntar o nome, salvar e então menu.
-4. **Remover** a frase "Só para confirmar, vou agendar para [Nome]" — ela só deve aparecer DENTRO do fluxo de agendamento (passo 9a), não na abertura.
-5. Consentimento de número mascarado: manter, mas só enviar na **primeira mensagem da sessão** junto da saudação, não como bloco separado depois.
+## Roteiros
 
-## 2. Não pedir nome novamente quando já reconhecido
+### Cenário 1 — Ana agenda consulta (happy path)
+1. "Oi" → saudação + menu
+2. "Ana Souza" (se pedir nome)
+3. "1" (agendar)
+4. "1" (para mim)
+5. Escolhe especialidade → médico → data → horário
+6. "1" (consulta) → confirma
+7. Verificar: linha em `agendamentos` com status `confirmado`, slot original marcado, mensagem de confirmação
 
-O passo **3 — PARA QUEM É O ATENDIMENTO** sempre pergunta "Qual o seu nome completo?" mesmo quando `buscar_paciente` já retornou o nome.
+### Cenário 2 — Ana remarca
+1. "Oi" → menu (deve reconhecer nome, sem repetir cadastro)
+2. "2" (remarcar) → seleciona consulta → novo horário → confirma
+3. Verificar: agendamento antigo liberado, novo criado
 
-Ajustar a lógica:
-- Se `paciente_ja_cadastrado=true` E opção escolhida = "para mim" → **não perguntar nome**, usar o já cadastrado e seguir.
-- Só perguntar nome quando: paciente novo, OU escolheu "para outra pessoa", OU pediu para corrigir.
+### Cenário 3 — Ana cancela
+1. "Oi" → "3" (cancelar) → seleciona → confirma
+2. Verificar: status `cancelado`, slot volta a `disponivel`
 
-## 3. Texto do "Tipo de consulta" enviesado para primeira vez
+### Cenário 4 — Sr. Joaquim (leigo) primeiro contato
+1. "boa tarde minha filha" → saudação contextual
+2. "Joaquim Pereira da Silva" (nome longo com acento)
+3. "queria marcar uma consulta" (texto livre, não número)
+4. "cardiologia" (extenso)
+5. Erra data: "amanhã" → ver se Sofia interpreta ou pede formato
+6. "manhã cedo" → ver se Sofia oferece horários
+7. Confirma
 
-Hoje:
-> "1. Consulta — primeira vez com esse médico/especialidade
-> 2. Retorno — consulta de acompanhamento já agendada anteriormente"
+### Cenário 5 — Joaquim pergunta financeiro
+1. "Oi" → "quanto custa a consulta?"
+2. Verificar sub-fluxo financeiro (opções 1-5) — se ainda não implementado, marcar como gargalo
 
-Reescrever para neutralizar (paciente pode estar marcando segunda, terceira consulta com o mesmo médico sem ser "retorno formal"):
+### Cenário 6 — Joaquim pede humano
+1. "Oi" → "quero falar com uma pessoa"
+2. Verificar: linha em `atendimentos_humanos` com `status=aguardando`, bot pausa
 
-```
-🗂️ Qual o tipo dessa consulta?
+### Cenário 7 — Edge cases
+- Mensagem vazia / só emoji
+- Número inválido no menu ("99")
+- Sai do fluxo no meio ("deixa pra lá") → Sofia deve voltar ao menu
+- Duas mensagens rápidas seguidas → ver se duplica resposta
+- "oi" depois de 1h → ver se reinicia ou continua sessão
 
-1️⃣ Consulta — avaliação nova ou acompanhamento de rotina
-2️⃣ Retorno — revisão de uma consulta recente (geralmente até 30 dias)
+## Coleta de gargalos
 
-Qual desses encaixa? 👇
-```
+Para cada cenário registro em tabela:
+- ✅ funcionou / ⚠️ feio mas funcionou / ❌ travou
+- Tempo de resposta
+- Mensagem da Sofia (qualidade do texto)
+- Estado correto no DB
+- Sugestão de fix (ajuste de prompt no n8n, função SQL, validação)
 
-## 4. Dúvidas financeiras — fluxo dedicado
+## Entrega final
 
-Hoje a opção 5 do menu cai direto na tool `criar_solicitacao` genérica. Substituir por um sub-fluxo no prompt:
+Relatório consolidado com:
+1. Tabela resumo dos 7 cenários
+2. Lista priorizada de problemas (P0 quebra fluxo / P1 UX ruim / P2 polimento)
+3. Para cada P0/P1: causa raiz + fix proposto (prompt no `AI Agent Sofia`, nova tool, migration, etc.)
+4. Recomendação se algum problema requer alteração no workflow n8n via MCP
 
-```
-💰 Posso te ajudar com:
-1️⃣ Valor de consulta particular
-2️⃣ Convênios aceitos
-3️⃣ Formas de pagamento (PIX, cartão, parcelamento)
-4️⃣ 2ª via de recibo / nota fiscal
-5️⃣ Outro assunto financeiro
-```
-
-- Opções 1-3: responder com texto estático da clínica (a definir com o cliente — colocar placeholder no prompt indicando "preencher conforme tabela da clínica").
-- Opções 4-5: criar `solicitacao` com `tipo=financeiro` e `motivo` específico → recepção retorna.
-
-## 5. Gerar agenda real (problema crítico — 0 vagas hoje)
-
-Consulta ao Supabase mostra **zero slots `disponivel`** em todas as 6 especialidades. Por isso a Sofia nunca encontra horário.
-
-Causa: `gerar_agenda_mes` nunca foi rodado para o período atual/futuro.
-
-Ação: criar migration que executa `gerar_agenda_mes` para **todos os médicos ativos** cobrindo de hoje até daqui a 60 dias. SQL:
-
-```sql
-DO $$
-DECLARE m record;
-BEGIN
-  FOR m IN SELECT id FROM medicos WHERE ativo = true LOOP
-    PERFORM gerar_agenda_mes(m.id, CURRENT_DATE, CURRENT_DATE + INTERVAL '60 days');
-  END LOOP;
-END $$;
-```
-
-Pré-requisito: garantir que todos os médicos ativos têm linhas em `horarios_medico`. Verificar e, se algum não tiver, inserir template padrão (seg-sex 08-18, sáb 08-12, slots de 30 min) antes de chamar `gerar_agenda_mes`.
-
-## Resumo das entregas
-
-```text
-[1] Atualizar systemMessage no nó "AI Agent Sofia" do workflow n8n:
-    - Saudação contextual + menu na abertura
-    - Pular pergunta de nome quando já cadastrado
-    - Reescrever tipo de consulta
-    - Adicionar sub-fluxo financeiro
-[2] Migration Supabase:
-    - Garantir horarios_medico para todos ativos
-    - Rodar gerar_agenda_mes para próximos 60 dias
-[3] Validar: nova mensagem "oi" → resposta com bom dia + menu;
-    consulta a buscar_agenda retorna horários reais.
-```
-
-## Detalhes técnicos
-
-- O workflow n8n é editado via MCP `mcp_n8n_eJdzs` (workflow "Atendimento - Clinica Medica (IA First)", id `eqqEnl042R9NZN_UWToot`).
-- Saudação por horário: usar `{{ $now.setZone('America/Sao_Paulo').hour }}` na expressão que monta o `text` do agent ou deixar a regra no systemMessage instruindo a IA a derivar do timestamp injetado.
-- Variável `paciente_ja_cadastrado` já é passada no `text` do agente — basta o prompt usá-la como condição.
-- Migration roda via tool `supabase--migration`; idempotente porque `gerar_agenda_mes` não duplica slots existentes.
+Antes de rodar: limpo dados de teste dos dois telefones para começar do zero.
